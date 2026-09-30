@@ -1,0 +1,11 @@
+# Editör ve işletim sistemi dosyaları
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# İleride paket yöneticisi eklenirse
+node_modules/
+dist/

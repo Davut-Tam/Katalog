@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Katalog</title>
+    <meta name="description" content="Ürün kataloğu: arama, kategori süzgeci ve sıralama.">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="ust">
+        <div class="ust-ic">
+            <a class="marka" href="./" aria-label="Katalog ana sayfa">
+                <span class="marka-simge" aria-hidden="true">◆</span>
+                <span>Katalog</span>
+            </a>
+            <button class="tema-dugme" id="temaDugme" type="button" aria-label="Temayı değiştir" title="Açık / koyu tema">
+                <span aria-hidden="true">☾</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="sayfa">
+        <section class="arac-cubugu" aria-label="Süzgeçler">
+            <label class="arama">
+                <span class="gorunmez">Ürün ara</span>
+                <input id="aramaKutu" type="search" placeholder="Ürün, marka ya da açıklama ara…" autocomplete="off">
+            </label>
+
+            <div class="kategoriler" id="kategoriler" role="tablist" aria-label="Kategoriler"></div>
+
+            <label class="siralama">
+                <span class="gorunmez">Sırala</span>
+                <select id="siralama">
+                    <option value="onerilen">Önerilen</option>
+                    <option value="fiyat-artan">Fiyat: düşükten yükseğe</option>
+                    <option value="fiyat-azalan">Fiyat: yüksekten düşüğe</option>
+                    <option value="ad">Ada göre (A–Z)</option>
+                </select>
+            </label>
+        </section>
+
+        <p class="sonuc-bilgi" id="sonucBilgi" aria-live="polite"></p>
+
+        <section class="izgara" id="izgara" aria-label="Ürünler"></section>
+
+        <div class="bos" id="bos" hidden>
+            <p class="bos-baslik">Aramanıza uyan ürün yok</p>
+            <p>Başka bir kelime deneyin ya da süzgeçleri temizleyin.</p>
+            <button class="dugme" id="temizleDugme" type="button">Süzgeçleri temizle</button>
+        </div>
+    </main>
+
+    <dialog class="ayrinti" id="ayrinti" aria-labelledby="ayrintiBaslik">
+        <form method="dialog" class="ayrinti-kapat-form">
+            <button class="ayrinti-kapat" aria-label="Kapat">✕</button>
+        </form>
+        <div class="ayrinti-gorsel" id="ayrintiGorsel"></div>
+        <div class="ayrinti-icerik">
+            <p class="ayrinti-kategori" id="ayrintiKategori"></p>
+            <h2 id="ayrintiBaslik"></h2>
+            <p class="ayrinti-marka" id="ayrintiMarka"></p>
+            <p id="ayrintiAciklama"></p>
+            <p class="ayrinti-fiyat" id="ayrintiFiyat"></p>
+        </div>
+    </dialog>
+
+    <footer class="alt">
+        <p>© <span id="yil"></span> Katalog</p>
+    </footer>
+
+    <!-- Modül değil, düz betik: index.html çift tıklanıp (file://) açıldığında da çalışsın. -->
+    <script src="js/veri.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
