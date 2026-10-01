@@ -13,7 +13,13 @@ Yazı tipleri Google Fonts'tan, PDF / ZIP / Excel / QR kütüphaneleri ihtiyaç 
 
 ## Neler yapılabilir
 
-- **Şablonlar:** Haftanın Fırsatları, Taze Manav, Süper Hafta Sonu, Kasap Reyonu, Kahvaltı, Temizlik Günleri, Katalog Kapağı, Raf Etiketleri (24'lü), Instagram gönderisi, hikâye ve mağaza ekranı.
+- **Şablonlar (50):** 33 baskı, 11 sosyal medya, 6 ekran şablonu.
+  - *Klasik market:* Haftanın Fırsatları, Taze Manav, Süper Hafta Sonu, Kasap Reyonu, Kahvaltı, Temizlik Günleri, Katalog Kapağı, Raf Etiketleri (24'lü), Dev Kampanya (16'lı), Fiyat Listesi (20'li).
+  - *Tarzlar:* Gurme Seçki (siyah-altın), Retro Pazar (70'ler), Neon Gece (synthwave), Gazete İlanı, Sade Seçki (İskandinav), Pop Art (çizgi roman), Bauhaus, Zen Mutfak,
+    Organik Pazar (kraft kâğıt), Vintage Bakkal, Manav Kasası (ahşap), Mantar Pano (iğnelenmiş polaroidler), Kuponlu Fırsatlar, Denizden Sofraya, Fit Seçki.
+  - *Mevsim ve özel gün:* Bahar, Yaz, Kış, Yeni Yıl, Ramazan, Bayram, Kara Cuma, Beslenme Çantası (okula dönüş).
+  - *Sosyal medya:* Günün Fırsatı, Kampanya Hikâyesi, Haftanın Yıldızları, Flaş Ürün, Fiyat Düştü, Kahvaltı Sepeti (paket fiyat), Çekiliş, Raflarda Yeni, Son Gün, Tarif Kartı, Facebook gönderisi.
+  - *Ekran:* Mağaza Ekranı, Kara Tahta Menü, Fiyat Borsası (kayan bantlı), Bugünün Yıldızı, Hoş Geldiniz (QR kodlu), Dikey Ekran Menüsü.
 - **Ürünler:** Ürün listesi; Excel / Google E-Tablolar'dan yapıştırma, `.xlsx` / `.csv` içe aktarma (sütunlar otomatik tanınır, `49,90` / `₺49` / `1.249,90` biçimleri okunur).
   Görselleri dosya adına göre toplu eşleştirme. **Ürünleri sayfalara yerleştir:** bir sayfa tasarlanır, tüm liste o düzenle gerektiği kadar sayfaya dağıtılır (istenirse her kategori yeni sayfada).
 - **Ürün kartları:** 7 düzen (klasik, patlama, şerit, sade, yatay, daire, raf etiketi), 12 renk teması, kuruş üstte (49⁹⁰) ya da düz, otomatik indirim rozeti.
@@ -34,6 +40,32 @@ Yazı tipleri Google Fonts'tan, PDF / ZIP / Excel / QR kütüphaneleri ihtiyaç 
 - **Telefon ve tablet:** 760 px'in altında paneller alttan açılan sayfalara, sol ray alt gezinme çubuğuna dönüşür. Bir öğe seçilince
   alttaki çubuk işlem çubuğu olur (Düzenle, Yazı, Kırp, Çoğalt, Öne / Arkaya, Kilitle, Sil); özellikler "Düzenle" ile açılır.
   İki parmakla yakınlaştırma, çift dokunuşla yazı düzenleme; dokunmatik ekranda tutamaçlar parmak boyunda.
+
+## IIS'te yayınlama
+
+`yayin\yayinla.bat` dosyasına çift tıklayın. Yönetici izni ister, kataloğu IIS'te **http://localhost:8080/** adresinde yayınlar,
+tarayıcıda açar ve proje klasörünü izler: `index.html`, `css`, `js` altında bir dosya kaydedildiğinde yayın birkaç saniyede güncellenir.
+Pencere kapanınca izleme durur, site yayında kalır.
+
+Bot (`yayin\iis-yayinla.ps1`) şunları yapar:
+- Dosyaları `C:\inetpub\katalog` klasörüne eşler.
+- JS / CSS bağlantılarına sürüm ekler; tarayıcı önbelleği eski dosya göstermez.
+- `web.config` yazar: MIME türleri, sıkıştırma, önbellek, güvenlik başlıkları.
+- "Katalog" sitesini ve "No Managed Code" uygulama havuzunu kurar ya da günceller.
+- Sağlık denetimi yapar. Günlük: `%ProgramData%\KatalogYayin\bot.log`.
+
+Seçenekler (PowerShell'den `yayin\iis-yayinla.ps1 …` ya da `.bat` içine eklenerek):
+
+| Seçenek | Ne yapar |
+|---|---|
+| `-Port 9090` | Başka bağlantı noktası |
+| `-Site "Default Web Site" -Uygulama katalog` | Var olan sitenin altında: http://localhost/katalog/ |
+| `-Site "AbellPro.Api" -Uygulama katalog` | AbellPro API'nin içinde; katalog sunucu adresini kendisi bulur |
+| `-IISKur` | Eksik IIS bileşenlerini kurar |
+| `-GuvenlikDuvari` | Ağdaki diğer cihazlar da açabilsin diye bağlantı noktasını açar |
+| `-HostAdi katalog.firma.local -SertifikaParmakIzi <parmak izi>` | 443'te https |
+| `-Otomatik -Dakika 10` | Zamanlanmış görev: git deposundan çeker, değişiklik varsa yayınlar (`-OtomatikKaldir`) |
+| `-YalnizDosyalar -Hedef <klasör>` | IIS'e dokunmadan yalnız dosyaları yazar |
 
 ## AbellPro bağlantısı
 
@@ -58,6 +90,7 @@ Not: Katalog `https` bir adresten açılmışsa `http` sunucuya bağlanamaz (tar
 ```
 Katalog/
 ├── index.html          iskelet; betikler sırayla yüklenir (modül değil, file:// ile de çalışsın)
+├── yayin/              IIS yayın botu: yayinla.bat (çift tıklayın), iis-yayinla.ps1
 ├── css/editor.css      düzenleyici arayüzü (renkler :root değişkenlerinde, açık / koyu tema)
 └── js/
     ├── temel.js        DOM üretici, olay yolu, renk / fiyat / dosya araçları
@@ -70,6 +103,7 @@ Katalog/
     ├── ui.js           açılır pencere, menü, iletişim penceresi, renk ve font seçici, denetimler
     ├── editor.js       tuval: seçim, taşıma, boyutlandırma, kılavuzlar, metin düzenleme, pano, kısayollar
     ├── sablonlar.js    hazır şablonlar ve otomatik yerleşim
+    ├── sablonlar-ek.js ek şablonlar (mevsim, özel gün, farklı tarzlar, sosyal medya, ekran)
     ├── paneller.js     sol paneller
     ├── ozellikler.js   sağ panel (seçili öğenin özellikleri)
     ├── disaaktar.js    PNG / JPG / PDF / HTML dışa aktarım
