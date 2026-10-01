@@ -25,19 +25,27 @@
         return { harita, fontCss };
     }
     const xmlKacis = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
-    async function sayfaResmi(s, { olcek = 2, tur = "image/png", kalite = 0.92 } = {}) {
+    // Sayfayı (kutu verilirse yalnız o bölgeyi) SVG foreignObject resmine çevirir; çözülmüş <img> döner.
+    // seffaf: sayfanın beyaz zemini çizilmez (video katmanları için).
+    async function svgResmi(s, { harita, fontCss, olcek = 1, kutu = null, seffaf = false, bekle = 60 }) {
         const b = E.belge, W = b.genislik, H = b.yukseklik;
-        const { harita, fontCss } = await hazirla(s);
+        const k = kutu || { x: 0, y: 0, w: W, h: H };
         const kok = KS.cizim.sayfaDom(s, b, { url: (id) => harita.get(id) || null });
+        if (seffaf) kok.style.background = "transparent";
         kok.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
         const icerik = new XMLSerializer().serializeToString(kok);
-        const cw = Math.round(W * olcek), ch = Math.round(H * olcek);
-        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${cw}" height="${ch}" viewBox="0 0 ${W} ${H}"><foreignObject x="0" y="0" width="${W}" height="${H}"><div xmlns="http://www.w3.org/1999/xhtml" style="width:${W}px;height:${H}px"><style>${xmlKacis(fontCss + KS.SAYFA_CSS)}</style>${icerik}</div></foreignObject></svg>`;
+        const cw = Math.max(1, Math.round(k.w * olcek)), ch = Math.max(1, Math.round(k.h * olcek));
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${cw}" height="${ch}" viewBox="${k.x} ${k.y} ${k.w} ${k.h}"><foreignObject x="0" y="0" width="${W}" height="${H}"><div xmlns="http://www.w3.org/1999/xhtml" style="width:${W}px;height:${H}px"><style>${xmlKacis(fontCss + KS.SAYFA_CSS)}</style>${icerik}</div></foreignObject></svg>`;
         const img = new Image();
         img.decoding = "sync";
         img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
         await img.decode();
-        await KS.bekle(60);
+        if (bekle) await KS.bekle(bekle);
+        return { img, cw, ch };
+    }
+    async function sayfaResmi(s, { olcek = 2, tur = "image/png", kalite = 0.92 } = {}) {
+        const { harita, fontCss } = await hazirla(s);
+        const { img, cw, ch } = await svgResmi(s, { harita, fontCss, olcek });
         const c = document.createElement("canvas");
         c.width = cw; c.height = ch;
         const ctx = c.getContext("2d");
@@ -149,6 +157,7 @@ addEventListener("resize",()=>ciz());ciz();
         { id: "pdf-baski", ad: "PDF (baskı)", alt: "Vektörel, en keskin sonuç. Yazdırma penceresinde \"PDF olarak kaydet\"i seçin", ikon: "yazdir" },
         { id: "pdf", ad: "PDF (doğrudan)", alt: "Tek tıkla indirilen, görsel tabanlı PDF", ikon: "pdf", raster: true, kalite: true },
         { id: "web", ad: "Web kataloğu", alt: "Sayfaları çevrilebilen tek HTML dosyası; web sitenize koyun ya da gönderin", ikon: "web", raster: true, kalite: true },
+        { id: "video", ad: "Video (MP4)", alt: "Animasyonlu, geçişli, müzikli video; Instagram, WhatsApp durumu, mağaza ekranı", ikon: "video" },
         { id: "proje", ad: "Proje dosyası", alt: "Sonra düzenlemek ya da başka bilgisayarda açmak için (.katalog)", ikon: "kaydet" }
     ];
     let sonAyar = { bicim: "png", kapsam: "hepsi", aralik: "", olcek: 2, kalite: 88 };
@@ -162,15 +171,14 @@ addEventListener("resize",()=>ciz());ciz();
         const durum = h("p.ipucu-metin", { style: { minHeight: "18px" } });
         let indirDugme, paylasDugme;
         function ciz() {
-            // Mobil uygulamanın WebView'inde yazdırma penceresi yok
-            kartlar.replaceChildren(...BICIMLER.filter((x) => !(KS.mobilUygulama && x.id === "pdf-baski")).map((x) => {
+            kartlar.replaceChildren(...BICIMLER.map((x) => {
                 const k = h("button.secenek-kart", { type: "button", "aria-pressed": String(ayar.bicim === x.id) }, h("span.ikon-kutu", KS.ikon(x.ikon, 18)), h("b", x.ad), h("small", x.alt));
                 k.addEventListener("click", () => { ayar.bicim = x.id; ciz(); });
                 return k;
             }));
             const bicim = BICIMLER.find((x) => x.id === ayar.bicim);
             const parcalar = [];
-            if (ayar.bicim !== "proje") {
+            if (ayar.bicim !== "proje" && ayar.bicim !== "video") {
                 const aralik = h("input.girdi", { value: ayar.aralik, placeholder: "ör. 1-3, 5", style: { maxWidth: "140px" } });
                 aralik.addEventListener("input", () => { ayar.aralik = aralik.value; ayar.kapsam = "aralik"; kapsamK.yenile("aralik"); });
                 aralik.addEventListener("keydown", (e) => e.stopPropagation());
@@ -186,6 +194,7 @@ addEventListener("resize",()=>ciz());ciz();
             }
             if (bicim.kalite) parcalar.push(KS.ui.alan("Kalite", KS.ui.kaydirici({ min: 40, max: 100, deger: ayar.kalite, son: "%", degisti: (v) => { ayar.kalite = v; } }).el));
             if (ayar.bicim === "pdf-baski") parcalar.push(h("div.bilgi-kutu", KS.ikon("bilgi", 17), h("div", "Açılan yazdırma penceresinde Hedef: ", h("b", "PDF olarak kaydet"), " seçin; Kenar boşlukları: ", h("b", "Yok"), ", ", h("b", "Arka plan grafikleri"), " açık olsun. Matbaaya göndermek için en iyi sonuç budur.")));
+            if (ayar.bicim === "video") parcalar.push(h("div.bilgi-kutu", KS.ikon("bilgi", 17), h("div", "Video stüdyosu açılır: geçiş, animasyon ve müziği seçip canlı önizleyin, sonra MP4 olarak indirin.")));
             if (ayar.bicim === "web") parcalar.push(h("div.bilgi-kutu", KS.ikon("bilgi", 17), h("div", "İnternet bağlantısı gerektirmeyen tek bir .html dosyası iner. Telefonda açıldığında sayfalar kaydırılarak çevrilir.")));
             ayarlar.replaceChildren(...parcalar);
             if (paylasDugme) paylasDugme.hidden = !(navigator.canShare && ["png", "jpg", "pdf"].includes(ayar.bicim));
@@ -195,10 +204,9 @@ addEventListener("resize",()=>ciz());ciz();
             baslik: "Dışa aktar", aciklama: `${b.ad} · ${b.genislik} × ${b.yukseklik} px`, sinif: "genis",
             icerik: h("div", kartlar, ayarlar, ilerleme, durum),
             dugmeler: [
-                { etiket: "Paylaş", ikon: "paylas", sol: true, ref: (el) => { paylasDugme = el; el.hidden = !!KS.mobilUygulama || !(navigator.canShare && ["png", "jpg", "pdf"].includes(ayar.bicim)); }, fn: () => calistir(true) },
+                { etiket: "Paylaş", ikon: "paylas", sol: true, ref: (el) => { paylasDugme = el; el.hidden = !(navigator.canShare && ["png", "jpg", "pdf"].includes(ayar.bicim)); }, fn: () => calistir(true) },
                 { etiket: "Vazgeç" },
-                // Mobil uygulamada indirme yerine uygulamanın paylaşım sayfası açılır (kaydet de oradan)
-                { etiket: KS.mobilUygulama ? "Kaydet / paylaş" : "İndir", birincil: true, ikon: KS.mobilUygulama ? "paylas" : "indir", ref: (el) => { indirDugme = el; }, fn: () => calistir(false) }
+                { etiket: "İndir", birincil: true, ikon: "indir", ref: (el) => { indirDugme = el; }, fn: () => calistir(false) }
             ]
         });
         async function calistir(paylas) {
@@ -208,6 +216,7 @@ addEventListener("resize",()=>ciz());ciz();
             if (!sayfalar.length) { durum.textContent = "Geçerli bir sayfa aralığı girin (ör. 1-3, 5)."; return false; }
             const ad = KS.dosyaAdi(E.belge.ad);
             if (ayar.bicim === "pdf-baski") { p.kapat(); setTimeout(() => yazdir(sayfalar), 120); return; }
+            if (ayar.bicim === "video") { p.kapat(); setTimeout(() => KS.video.ac(), 120); return; }
             if (ayar.bicim === "proje") {
                 const blob = await KS.depo.dosyaOlustur(E.belge);
                 KS.indir(blob, ad + ".katalog");
@@ -237,10 +246,7 @@ addEventListener("resize",()=>ciz());ciz();
                     durum.textContent = "Web kataloğu hazırlanıyor…";
                     dosyalar = [new File([await webKatalogu(sayfalar, { olcek: Math.min(ayar.olcek, 2), kalite, ilerle })], ad + ".html", { type: "text/html" })];
                 }
-                if (KS.mobilUygulama) {
-                    durum.textContent = "Paylaşılıyor…";
-                    await KS.mobilPaylas(dosyalar.map((d) => [d, d.name]));
-                } else if (paylas && navigator.canShare && navigator.canShare({ files: dosyalar })) {
+                if (paylas && navigator.canShare && navigator.canShare({ files: dosyalar })) {
                     durum.textContent = "Paylaşılıyor…";
                     try { await navigator.share({ files: dosyalar, title: E.belge.ad }); } catch (h) { if (h.name !== "AbortError") throw h; }
                 } else if (dosyalar.length > 1) {
@@ -265,5 +271,5 @@ addEventListener("resize",()=>ciz());ciz();
         }
     }
 
-    KS.disaaktar = { pencere, yazdir, sayfaResmi, pdfOlustur, webKatalogu, aralikCoz };
+    KS.disaaktar = { pencere, yazdir, sayfaResmi, svgResmi, hazirla, pdfOlustur, webKatalogu, aralikCoz };
 })();

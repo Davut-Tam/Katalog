@@ -820,3 +820,69 @@ input[type="range"] { min-width: 0; }
     .tutamac.dondur::after { content: none; }
     .tutamac:hover { transform: none; }
 }
+
+/* Video katalog stüdyosu */
+dialog.pencere.video-pencere { max-width: min(96vw, 1200px); }
+.video-duzen { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 20px; align-items: start; }
+.video-sahne { display: flex; flex-direction: column; background: #0b0c10; border-radius: var(--r3); overflow: hidden; height: min(64vh, 640px); color: #e8eaf0; }
+.video-ekran { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; }
+.video-tuval { display: block; border-radius: 6px; box-shadow: 0 18px 50px rgba(0, 0, 0, .55); cursor: pointer; background: #000; }
+.video-tuval[hidden], .video-sonuc[hidden], .video-kontrol[hidden], .video-rozetler[hidden] { display: none; }
+.video-sonuc { position: absolute; inset: 14px; width: calc(100% - 28px); height: calc(100% - 28px); object-fit: contain; display: block; background: transparent; }
+.video-rozetler { position: absolute; top: 12px; left: 12px; display: flex; gap: 6px; pointer-events: none; }
+.video-rozetler span { background: rgba(0, 0, 0, .55); backdrop-filter: blur(6px); color: #fff; font-size: 11.5px; font-weight: 600; padding: 4px 8px; border-radius: 999px; font-variant-numeric: tabular-nums; }
+.video-ortu { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; text-align: center; background: rgba(11, 12, 16, .7); backdrop-filter: blur(3px); }
+.video-ortu[hidden] { display: none; }
+.video-ortu .kutu { width: min(340px, 82%); display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.video-ortu b { font-size: 15px; color: #fff; }
+.video-ortu small { color: #aab0bd; font-size: 12.5px; min-height: 16px; }
+.video-ortu .ilerleme { width: 100%; background: rgba(255, 255, 255, .14); }
+.video-ortu .ilerleme[hidden] { display: none; }
+.video-ortu .dugme { margin-top: 10px; }
+.video-kontrol { display: flex; align-items: center; gap: 12px; padding: 10px 14px 12px; }
+.video-oynat { flex: none; width: 40px; height: 40px; border: 0; border-radius: 50%; background: #fff; color: #111; display: grid; place-items: center; cursor: pointer; transition: transform var(--gecis); }
+.video-oynat:hover { transform: scale(1.06); }
+.video-oynat .ikon { fill: currentColor; }
+.video-cizgi { flex: 1; min-width: 0; accent-color: var(--vurgu); }
+.video-zaman { font-size: 12.5px; font-variant-numeric: tabular-nums; color: #cfd2da; white-space: nowrap; }
+.video-ayarlar { max-height: min(64vh, 640px); overflow: auto; padding: 2px 4px 2px 2px; transition: opacity var(--gecis); }
+.video-ayarlar.kilitli { opacity: .45; pointer-events: none; }
+.video-baslik { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--yazi-3); margin: 16px 0 8px; }
+.video-baslik:first-child { margin-top: 0; }
+.video-ikili { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+.video-cipler { display: flex; flex-wrap: wrap; gap: 6px; }
+.video-cip { border: 1px solid var(--cizgi-2); background: var(--z1); color: var(--yazi); border-radius: 999px; padding: 6px 12px; font: 500 12.5px/1.2 var(--yazi-tipi); cursor: pointer; transition: background var(--gecis), border-color var(--gecis), color var(--gecis); }
+.video-cip:hover { border-color: var(--vurgu-orta); }
+.video-cip[aria-pressed="true"] { background: var(--vurgu); border-color: var(--vurgu); color: var(--vurgu-yazi); }
+.video-anahtar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; font-size: 13px; font-weight: 500; cursor: pointer; }
+.video-anahtar small { display: block; color: var(--yazi-3); font-size: 11.5px; font-weight: 400; margin-top: 1px; }
+.video-muzik { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 10px; border-radius: var(--r2); background: var(--vurgu-acik); font-size: 12.5px; margin-bottom: 6px; }
+.video-muzik > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.video-muzik .ikon { color: var(--vurgu); flex: none; }
+@media (max-width: 900px) {
+    .video-duzen { grid-template-columns: minmax(0, 1fr); }
+    .video-sahne { height: min(56vh, 560px); }
+    .video-ayarlar { max-height: none; overflow: visible; }
+}
+@media (max-width: 760px) {
+    .video-sahne { height: 48dvh; border-radius: var(--r2); }
+}
+.video-mod { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: var(--r2); background: var(--z2); margin-bottom: 16px; }
+.video-mod button { display: flex; align-items: center; justify-content: center; gap: 7px; height: 36px; border: 0; border-radius: 8px; background: transparent; color: var(--yazi-2); font: 600 13px var(--yazi-tipi); cursor: pointer; transition: background var(--gecis), color var(--gecis), box-shadow var(--gecis); }
+.video-mod button[aria-selected="true"] { background: var(--z1); color: var(--yazi); box-shadow: var(--golge-1); }
+.video-mod button[aria-selected="true"] .ikon { color: var(--vurgu); }
+.video-urunler { border: 1px solid var(--cizgi); border-radius: var(--r2); overflow: hidden; }
+.video-urun-ust { display: flex; align-items: center; gap: 6px; padding: 6px 6px 6px 10px; border-bottom: 1px solid var(--cizgi); background: var(--z2); }
+.video-urun-ust .girdi { flex: 1; min-width: 0; height: 30px; }
+.video-urun-say { flex: 1; font-size: 12px; color: var(--yazi-2); white-space: nowrap; }
+.video-urun-ust .girdi + .video-urun-say { flex: none; }
+.video-urun-liste { max-height: 216px; overflow: auto; }
+.video-urun { display: flex; align-items: center; gap: 9px; padding: 6px 10px; font-size: 12.5px; cursor: pointer; border-bottom: 1px solid var(--cizgi); }
+.video-urun:last-child { border-bottom: 0; }
+.video-urun[hidden] { display: none; }
+.video-urun:hover { background: var(--z2); }
+.video-urun input { accent-color: var(--vurgu); width: 16px; height: 16px; flex: none; margin: 0; }
+.video-urun-resim { width: 32px; height: 32px; flex: none; border-radius: 7px; background: var(--z2); display: grid; place-items: center; overflow: hidden; font-size: 20px; line-height: 1; font-family: "Noto Color Emoji", sans-serif; }
+.video-urun-resim img { width: 100%; height: 100%; object-fit: contain; }
+.video-urun-ad { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.video-urun b { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--yazi-2); }

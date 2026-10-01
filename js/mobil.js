@@ -47,41 +47,7 @@
 
         // Telefona geçilince açık kalan tablet paneli kapansın; masaüstüne dönünce seçim çubuğu sınıfı temizlensin
         KS.olay.on("mobil", (m) => { if (m) KS.ozellikler.kapat(); ciz(); KS.editor.sigdir(); });
-
-        // Mobil uygulamanın içinde logo "AbellPro'ya dön" düğmesidir (iOS'ta geri tuşu yok)
-        if (KS.mobilUygulama) {
-            const logo = document.querySelector(".logo");
-            logo.removeAttribute("href");
-            logo.setAttribute("role", "button");
-            logo.title = "AbellPro'ya dön";
-            logo.setAttribute("aria-label", "AbellPro'ya dön");
-            logo.querySelector(".logo-simge").replaceChildren(KS.ikon("sol", 20));
-            logo.addEventListener("click", (e) => { e.preventDefault(); mobilKapat(); });
-        }
     }
 
-    // Uygulamaya dönüş: bekleyen kayıt yazılır, sonra uygulama sayfayı kapatır
-    async function mobilKapat() {
-        await KS.uygulama.hemenKaydet();
-        await fetch("/kopru/kapat", { method: "POST", headers: { Authorization: "Bearer " + KS.mobilUygulama.token } }).catch(() => {});
-    }
-    KS.mobilKapat = mobilKapat;
-
-    // Telefonun geri tuşu (mobil uygulama WebView'i çağırır): en üstteki açık katmanı kapatır.
-    // Kapatacak bir şey yoksa false döner; uygulama o zaman katalog sayfasından çıkar.
-    function geriTusu() {
-        if (document.querySelector(".acilir")) { KS.ui.kapat(); return true; }
-        if (document.querySelector(".onizleme-kap")) { document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })); return true; }
-        const pencereler = document.querySelectorAll("dialog[open]");
-        if (pencereler.length) { pencereler[pencereler.length - 1].dispatchEvent(new Event("cancel", { cancelable: true })) && pencereler[pencereler.length - 1].close(); return true; }
-        if (E.duzenlenen) { KS.editor.metinBitir(); return true; }
-        if (E.kirpilan) { KS.editor.kirpBitir(); return true; }
-        if (KS.mobil() && KS.ozellikler.acikMi()) { KS.ozellikler.kapat(); return true; }
-        if (KS.mobil() && !document.getElementById("solPanel").classList.contains("kapali")) { KS.paneller.kapat(); return true; }
-        if (E.secim.length) { KS.editor.sec([]); return true; }
-        return false;
-    }
-
-    KS.mobilArayuz = { baslat, geriTusu };
-    KS.geriTusu = geriTusu;
+    KS.mobilArayuz = { baslat };
 })();

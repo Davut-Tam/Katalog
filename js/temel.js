@@ -283,25 +283,7 @@ window.KS = window.KS || {};
         return { blob, g, y };
     };
 
-    // AbellPro mobil uygulamasının içinde (WebView) açıldıysa uygulamanın yerel sunucusu sayfaya oturum bilgisini
-    // gömer: { token, kullaniciId, adSoyad, firma }. Stoklar uygulamadaki verilerden gelir, lisans / giriş sorulmaz.
-    KS.mobilUygulama = window.ABELLPRO_UYGULAMA || null;
-    // WebView'de indirme yok: dosyalar uygulamaya verilir, uygulama paylaşım sayfasını açar (kaydet, WhatsApp, e-posta…).
-    // dosyalar: [[Blob | url, ad], …] — hepsi tek paylaşımda gider. Hata olursa fırlatır.
-    KS.mobilPaylas = async (dosyalar) => {
-        const istek = async (yol, govde, tur) => {
-            const y = await fetch(yol, { method: "POST", body: govde, headers: { Authorization: "Bearer " + KS.mobilUygulama.token, "Content-Type": tur || "application/octet-stream" } });
-            if (!y.ok) throw new Error("Dosya uygulamaya aktarılamadı: " + ((await y.text()) || y.status));
-        };
-        for (const [veri, ad] of dosyalar) {
-            const blob = typeof veri === "string" ? await (await fetch(veri)).blob() : veri;
-            await istek("/kopru/dosya?ad=" + encodeURIComponent(ad), blob, blob.type);
-        }
-        await istek("/kopru/paylas");
-    };
-
     KS.indir = (veri, ad) => {
-        if (KS.mobilUygulama) { KS.mobilPaylas([[veri, ad]]).catch((h) => KS.bildir(h.message, { tur: "hata", sure: 5000 })); return; }
         const url = typeof veri === "string" ? veri : URL.createObjectURL(veri);
         const a = KS.h("a", { href: url, download: ad });
         document.body.append(a);

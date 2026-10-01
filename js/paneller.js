@@ -287,14 +287,12 @@
         }
         const a = ap.ayar(), f = a.firma || {};
         const menu = h("button.ikon-dugme.kucuk", { type: "button", title: "AbellPro seçenekleri" }, KS.ikon("menu", 16));
-        // Mobil uygulamanın içinde oturum ve lisans uygulamanındır; burada kapatılmaz
         menu.addEventListener("click", () => KS.ui.menu([
             { ikon: "marka", etiket: "Firma bilgilerini al (ad, telefon, logo)", fn: ap.firmaBilgisiAl },
             { ikon: "ayar", etiket: "Bağlantı bilgileri", fn: () => ap.baglantiPenceresi({}) },
-            ...(ap.uygulama ? [] : [
-                "-",
-                { ikon: "kilitAcik", etiket: "Oturumu kapat", fn: ap.cikis },
-                { ikon: "sil", etiket: "Lisansı bu tarayıcıdan kaldır", tehlike: true, fn: ap.lisansiSifirla }])
+            "-",
+            { ikon: "kilitAcik", etiket: "Oturumu kapat", fn: ap.cikis },
+            { ikon: "sil", etiket: "Lisansı bu tarayıcıdan kaldır", tehlike: true, fn: ap.lisansiSifirla }
         ], menu));
         return h("div.ap-kart.bagli",
             h("div.ap-kart-ust", h("span.ap-nokta"), h("div", h("b", f.kisaAd || f.unvan || "AbellPro"), h("small", a.adSoyad)), menu),
