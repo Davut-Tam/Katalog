@@ -2,75 +2,74 @@
 <html lang="tr">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Katalog</title>
-    <meta name="description" content="Ürün kataloğu: arama, kategori süzgeci ve sıralama.">
-    <link rel="stylesheet" href="css/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Katalog Stüdyo</title>
+    <meta name="description" content="Marketler için ürün kataloğu, broşür ve sosyal medya görseli tasarım programı.">
+    <meta name="theme-color" content="#6c47ff">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ff3d6e'/%3E%3Cstop offset='.5' stop-color='%23ffb800'/%3E%3Cstop offset='1' stop-color='%236c47ff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Cpath d='M20 18h24v28H20z' fill='%23fff' opacity='.95'/%3E%3Cpath d='M25 25h14M25 31h14M25 37h8' stroke='%236c47ff' stroke-width='3.5' stroke-linecap='round'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap">
+    <link rel="stylesheet" href="css/editor.css">
 </head>
 <body>
-    <header class="ust">
-        <div class="ust-ic">
-            <a class="marka" href="./" aria-label="Katalog ana sayfa">
-                <span class="marka-simge" aria-hidden="true">◆</span>
-                <span>Katalog</span>
-            </a>
-            <button class="tema-dugme" id="temaDugme" type="button" aria-label="Temayı değiştir" title="Açık / koyu tema">
-                <span aria-hidden="true">☾</span>
-            </button>
+    <div class="uygulama" id="uygulama">
+        <header class="ust-cubuk">
+            <div class="ust-sol">
+                <a class="logo" href="./" aria-label="Katalog Stüdyo">
+                    <span class="logo-simge" id="logoSimge"></span>
+                    <span class="logo-ad">Katalog<b>Stüdyo</b></span>
+                </a>
+                <button class="menu-dugme" id="dosyaDugme" type="button" aria-haspopup="menu" aria-expanded="false">Dosya</button>
+                <button class="menu-dugme" id="boyutDugme" type="button" aria-haspopup="menu" aria-expanded="false">Boyut</button>
+                <span class="ayrac"></span>
+                <button class="ikon-dugme" id="geriDugme" type="button" title="Geri al (Ctrl+Z)" aria-label="Geri al"></button>
+                <button class="ikon-dugme" id="ileriDugme" type="button" title="Yinele (Ctrl+Y)" aria-label="Yinele"></button>
+            </div>
+            <div class="ust-orta">
+                <input class="belge-adi" id="belgeAdi" value="Adsız katalog" aria-label="Katalog adı" spellcheck="false">
+                <span class="kayit-durumu" id="kayitDurumu" aria-live="polite"></span>
+            </div>
+            <div class="ust-sag">
+                <button class="ikon-dugme" id="temaDugme" type="button" title="Açık / koyu tema" aria-label="Temayı değiştir"></button>
+                <button class="ikon-dugme" id="yardimDugme" type="button" title="Klavye kısayolları (?)" aria-label="Klavye kısayolları"></button>
+                <button class="dugme metinli" id="onizleDugme" type="button" title="Katalog önizleme"></button>
+                <button class="dugme birincil metinli" id="disaDugme" type="button" aria-haspopup="dialog"></button>
+            </div>
+        </header>
+        <div class="govde">
+            <nav class="ray" id="ray" aria-label="Paneller" role="tablist"></nav>
+            <aside class="sol-panel" id="solPanel" aria-label="Panel"></aside>
+            <main class="calisma">
+                <div class="tuval" id="tuval" tabindex="-1">
+                    <div class="tuval-ic" id="tuvalIc"></div>
+                </div>
+                <footer class="alt-cubuk" id="altCubuk"></footer>
+            </main>
+            <aside class="sag-panel" id="sagPanel" aria-label="Özellikler"></aside>
         </div>
-    </header>
+    </div>
+    <div id="baski" aria-hidden="true"></div>
 
-    <main class="sayfa">
-        <section class="arac-cubugu" aria-label="Süzgeçler">
-            <label class="arama">
-                <span class="gorunmez">Ürün ara</span>
-                <input id="aramaKutu" type="search" placeholder="Ürün, marka ya da açıklama ara…" autocomplete="off">
-            </label>
+    <noscript><p style="padding:24px">Katalog Stüdyo'nun çalışması için JavaScript gerekir.</p></noscript>
 
-            <div class="kategoriler" id="kategoriler" role="tablist" aria-label="Kategoriler"></div>
-
-            <label class="siralama">
-                <span class="gorunmez">Sırala</span>
-                <select id="siralama">
-                    <option value="onerilen">Önerilen</option>
-                    <option value="fiyat-artan">Fiyat: düşükten yükseğe</option>
-                    <option value="fiyat-azalan">Fiyat: yüksekten düşüğe</option>
-                    <option value="ad">Ada göre (A–Z)</option>
-                </select>
-            </label>
-        </section>
-
-        <p class="sonuc-bilgi" id="sonucBilgi" aria-live="polite"></p>
-
-        <section class="izgara" id="izgara" aria-label="Ürünler"></section>
-
-        <div class="bos" id="bos" hidden>
-            <p class="bos-baslik">Aramanıza uyan ürün yok</p>
-            <p>Başka bir kelime deneyin ya da süzgeçleri temizleyin.</p>
-            <button class="dugme" id="temizleDugme" type="button">Süzgeçleri temizle</button>
-        </div>
-    </main>
-
-    <dialog class="ayrinti" id="ayrinti" aria-labelledby="ayrintiBaslik">
-        <form method="dialog" class="ayrinti-kapat-form">
-            <button class="ayrinti-kapat" aria-label="Kapat">✕</button>
-        </form>
-        <div class="ayrinti-gorsel" id="ayrintiGorsel"></div>
-        <div class="ayrinti-icerik">
-            <p class="ayrinti-kategori" id="ayrintiKategori"></p>
-            <h2 id="ayrintiBaslik"></h2>
-            <p class="ayrinti-marka" id="ayrintiMarka"></p>
-            <p id="ayrintiAciklama"></p>
-            <p class="ayrinti-fiyat" id="ayrintiFiyat"></p>
-        </div>
-    </dialog>
-
-    <footer class="alt">
-        <p>© <span id="yil"></span> Katalog</p>
-    </footer>
-
-    <!-- Modül değil, düz betik: index.html çift tıklanıp (file://) açıldığında da çalışsın. -->
+    <!-- Modül değil, düz betikler: index.html çift tıklanıp (file://) açıldığında da çalışsın. Sıra önemlidir. -->
+    <script src="js/temel.js"></script>
+    <script src="js/ikonlar.js"></script>
+    <script src="js/fontlar.js"></script>
+    <script src="js/model.js"></script>
+    <script src="js/cizim.js"></script>
+    <script src="js/depo.js"></script>
     <script src="js/veri.js"></script>
-    <script src="js/app.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/editor.js"></script>
+    <script src="js/sablonlar.js"></script>
+    <script src="js/paneller.js"></script>
+    <script src="js/ozellikler.js"></script>
+    <script src="js/disaaktar.js"></script>
+    <script src="js/onizleme.js"></script>
+    <script src="js/abellpro.js"></script>
+    <script src="js/uygulama.js"></script>
 </body>
 </html>

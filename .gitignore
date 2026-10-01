@@ -9,3 +9,6 @@ desktop.ini
 # İleride paket yöneticisi eklenirse
 node_modules/
 dist/
+
+# Claude Code yerel ayarları (önizleme sunucusu vb.)
+.claude/
