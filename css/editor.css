@@ -101,7 +101,8 @@ button { cursor: pointer; }
 
 /* Üst çubuk */
 .ust-cubuk {
-    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px;
+    /* Kenar sütunları içeriklerinden dar olamaz: sağdaki düğmeler ortadaki ad / kayıt durumunun üstüne taşmaz */
+    display: grid; grid-template-columns: minmax(max-content, 1fr) auto minmax(max-content, 1fr); align-items: center; gap: 12px;
     padding: 0 12px 0 10px; background: var(--z1); border-bottom: 1px solid var(--cizgi); position: relative; z-index: 30;
 }
 .ust-sol, .ust-sag { display: flex; align-items: center; gap: 4px; min-width: 0; }
@@ -117,7 +118,7 @@ button { cursor: pointer; }
 .logo-ad b { font-weight: 800; background: linear-gradient(90deg, var(--vurgu), #ff3d6e); -webkit-background-clip: text; background-clip: text; color: transparent; margin-left: 3px; }
 .ayrac { width: 1px; height: 22px; background: var(--cizgi); margin: 0 6px; flex: none; }
 .belge-adi {
-    width: clamp(160px, 26vw, 340px); height: 34px; border: 1px solid transparent; border-radius: var(--r1); background: transparent;
+    width: clamp(140px, 22vw, 340px); height: 34px; border: 1px solid transparent; border-radius: var(--r1); background: transparent;
     padding: 0 10px; font-weight: 600; font-size: 14px; text-align: center; text-overflow: ellipsis;
 }
 .belge-adi:hover { background: var(--z2); }
@@ -616,10 +617,17 @@ table.veri th select { height: 28px; font-size: 12px; min-width: 110px; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 }
 
-/* Dar ekranlar */
+/* Dar ekranlar: üst çubuk kademeli sadeleşir (önce Önizle / Video yazıları, sonra kayıt yazısı, sonra tema ve kısayol düğmeleri) */
+@media (max-width: 1320px) {
+    .ust-sag #onizleDugme, .ust-sag #videoDugme { width: 38px; padding: 0; justify-content: center; }
+    .ust-sag #onizleDugme span, .ust-sag #videoDugme span { display: none; }
+}
 @media (max-width: 1180px) {
     :root { --sol: 300px; --sag: 268px; }
-    .logo-ad { display: none; }
+    .logo-ad, .kayit-durumu span { display: none; }
+}
+@media (max-width: 1100px) {
+    #temaDugme, #yardimDugme { display: none; }
 }
 @media (max-width: 900px) {
     :root { --ray: 60px; }

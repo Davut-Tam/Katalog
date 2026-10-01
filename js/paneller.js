@@ -120,7 +120,7 @@
     cizimler.sablonlar = () => {
         const filtreler = [["hepsi", "Tümü"], ["A4", "Baskı (A4)"], ["sosyal", "Sosyal medya"], ["ekran", "Ekran"]];
         const cipler = h("div.cipler", filtreler.map(([k, ad]) => h("button.cip", { type: "button", "aria-pressed": String(sablonFiltre === k), onclick: () => { sablonFiltre = k; ciz(); } }, ad)));
-        const uygun = KS.SABLONLAR.filter((t) => sablonFiltre === "hepsi" || (sablonFiltre === "A4" ? t.boyut.g === 794 : sablonFiltre === "sosyal" ? t.boyut.g === 1080 : t.boyut.g === 1920));
+        const uygun = KS.SABLONLAR.filter((t) => sablonFiltre === "hepsi" || KS.sablonKategori(t) === sablonFiltre);
         const izgara = h("div.izgara.s2", { style: { gap: "14px 10px" } }, uygun.map((t) => {
             const anahtar = t.id + JSON.stringify(E.belge.marka);
             if (!sablonOnbellek.has(anahtar)) sablonOnbellek.set(anahtar, KS.sablonOnizleme(t, 145));

@@ -24,9 +24,10 @@
     function durumGoster(tur) {
         const el = $("#kayitDurumu");
         el.classList.toggle("bekliyor", tur !== "tamam");
-        el.replaceChildren(KS.ikon(tur === "tamam" ? "tamam" : tur === "hata" ? "uyari" : "yenile", 14),
-            tur === "tamam" ? "Kaydedildi" : tur === "hata" ? "Kaydedilemedi" : "Kaydediliyor…");
-        el.title = tur === "tamam" ? "Değişiklikler bu tarayıcıda otomatik kaydedilir" : "";
+        const yazi = tur === "tamam" ? "Kaydedildi" : tur === "hata" ? "Kaydedilemedi" : "Kaydediliyor…";
+        el.replaceChildren(KS.ikon(tur === "tamam" ? "tamam" : tur === "hata" ? "uyari" : "yenile", 14), h("span", yazi));
+        // Dar ekranda yalnız simge görünür; durum ipucunda yazar
+        el.title = tur === "tamam" ? "Kaydedildi — değişiklikler bu tarayıcıda otomatik kaydedilir" : yazi;
     }
     const kaydet = KS.gecikmeli(async () => {
         if (!E.belge) return;
