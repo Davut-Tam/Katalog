@@ -162,7 +162,8 @@ addEventListener("resize",()=>ciz());ciz();
         const durum = h("p.ipucu-metin", { style: { minHeight: "18px" } });
         let indirDugme, paylasDugme;
         function ciz() {
-            kartlar.replaceChildren(...BICIMLER.map((x) => {
+            // Mobil uygulamanın WebView'inde yazdırma penceresi yok
+            kartlar.replaceChildren(...BICIMLER.filter((x) => !(KS.mobilUygulama && x.id === "pdf-baski")).map((x) => {
                 const k = h("button.secenek-kart", { type: "button", "aria-pressed": String(ayar.bicim === x.id) }, h("span.ikon-kutu", KS.ikon(x.ikon, 18)), h("b", x.ad), h("small", x.alt));
                 k.addEventListener("click", () => { ayar.bicim = x.id; ciz(); });
                 return k;
@@ -194,9 +195,10 @@ addEventListener("resize",()=>ciz());ciz();
             baslik: "Dışa aktar", aciklama: `${b.ad} · ${b.genislik} × ${b.yukseklik} px`, sinif: "genis",
             icerik: h("div", kartlar, ayarlar, ilerleme, durum),
             dugmeler: [
-                { etiket: "Paylaş", ikon: "paylas", sol: true, ref: (el) => { paylasDugme = el; el.hidden = !(navigator.canShare && ["png", "jpg", "pdf"].includes(ayar.bicim)); }, fn: () => calistir(true) },
+                { etiket: "Paylaş", ikon: "paylas", sol: true, ref: (el) => { paylasDugme = el; el.hidden = !!KS.mobilUygulama || !(navigator.canShare && ["png", "jpg", "pdf"].includes(ayar.bicim)); }, fn: () => calistir(true) },
                 { etiket: "Vazgeç" },
-                { etiket: "İndir", birincil: true, ikon: "indir", ref: (el) => { indirDugme = el; }, fn: () => calistir(false) }
+                // Mobil uygulamada indirme yerine uygulamanın paylaşım sayfası açılır (kaydet de oradan)
+                { etiket: KS.mobilUygulama ? "Kaydet / paylaş" : "İndir", birincil: true, ikon: KS.mobilUygulama ? "paylas" : "indir", ref: (el) => { indirDugme = el; }, fn: () => calistir(false) }
             ]
         });
         async function calistir(paylas) {
@@ -235,7 +237,10 @@ addEventListener("resize",()=>ciz());ciz();
                     durum.textContent = "Web kataloğu hazırlanıyor…";
                     dosyalar = [new File([await webKatalogu(sayfalar, { olcek: Math.min(ayar.olcek, 2), kalite, ilerle })], ad + ".html", { type: "text/html" })];
                 }
-                if (paylas && navigator.canShare && navigator.canShare({ files: dosyalar })) {
+                if (KS.mobilUygulama) {
+                    durum.textContent = "Paylaşılıyor…";
+                    await KS.mobilPaylas(dosyalar.map((d) => [d, d.name]));
+                } else if (paylas && navigator.canShare && navigator.canShare({ files: dosyalar })) {
                     durum.textContent = "Paylaşılıyor…";
                     try { await navigator.share({ files: dosyalar, title: E.belge.ad }); } catch (h) { if (h.name !== "AbortError") throw h; }
                 } else if (dosyalar.length > 1) {

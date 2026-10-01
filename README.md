@@ -23,6 +23,9 @@ Yazı tipleri Google Fonts'tan, PDF / ZIP / Excel / QR kütüphaneleri ihtiyaç 
 - **Düzenleme:** Köşeden boyutlandırma (yazıda font da büyür), döndürme, akıllı hizalama kılavuzları, alan seçimi, gruplama, kilitleme, katmanlar, hizalama ve eşit dağıtma, stil kopyalama, geri al / yinele, sayfalar arası sürükleme, pano ve klavye kısayolları (`?` ile listelenir).
 - **Dışa aktarma:** PNG, JPG (çok sayfada ZIP), PDF (yazdırma yoluyla vektörel ya da doğrudan), tek dosyalık **web kataloğu** (HTML, sayfa çevirmeli), proje dosyası. Destekleyen cihazlarda doğrudan paylaşma (WhatsApp vb.).
 - **Önizleme:** Kataloğu broşür gibi çift sayfa hâlinde gösterir.
+- **Telefon ve tablet:** 760 px'in altında paneller alttan açılan sayfalara, sol ray alt gezinme çubuğuna dönüşür. Bir öğe seçilince
+  alttaki çubuk işlem çubuğu olur (Düzenle, Yazı, Kırp, Çoğalt, Öne / Arkaya, Kilitle, Sil); özellikler "Düzenle" ile açılır.
+  İki parmakla yakınlaştırma, çift dokunuşla yazı düzenleme; dokunmatik ekranda tutamaçlar parmak boyunda.
 
 ## AbellPro bağlantısı
 
@@ -41,6 +44,14 @@ Katalogda ad, fiyat, resim istendiği gibi değiştirilebilir; bunlar AbellPro'y
 **Marka → AbellPro'dan al** firma adını, telefonu, adresi ve logoyu getirir; sayfalardaki eski yazılar da güncellenir.
 
 Not: Katalog `https` bir adresten açılmışsa `http` sunucuya bağlanamaz (tarayıcı kuralı); bu durumda sunucunun `https` adresini kullanın ya da `index.html`'i bilgisayardan açın.
+
+### AbellPro mobil uygulamasının içinde
+
+AbellPro mobil uygulamasında (menü → **Katalog**) bu dosyalar uygulamaya gömülüdür (`abell_pro/assets/katalog`, `dart run tool/katalog_kopyala.dart` ile güncellenir)
+ve WebView'de uygulamanın yerel sunucusundan (`http://127.0.0.1:47613/katalog/`) açılır. Sunucu sayfaya oturumu gömer (`window.ABELLPRO_UYGULAMA` → `KS.mobilUygulama`):
+lisans ve giriş sorulmaz, `Api/Katalog` uçlarını uygulama cihazdaki stok listesi ve resimlerle yanıtlar (lokal kipte de çalışır).
+Dışa aktarılan dosyalar `/kopru/dosya` + `/kopru/paylas` ile uygulamaya verilir, uygulama paylaşım sayfasını açar; yazdırma seçeneği gizlenir.
+Logo "AbellPro'ya dön" düğmesidir; telefonun geri tuşu önce açık pencere / panel / seçimi kapatır (`KS.geriTusu`).
 
 ## Yapı
 
@@ -64,6 +75,7 @@ Katalog/
     ├── disaaktar.js    PNG / JPG / PDF / HTML dışa aktarım
     ├── onizleme.js     tam ekran broşür önizleme
     ├── abellpro.js     AbellPro bağlantısı: lisans, giriş, stok alma, güncelleme
+    ├── mobil.js        telefon düzeni: seçim işlem çubuğu, "Sayfa" düğmesi, geri tuşu, uygulamaya dönüş
     └── uygulama.js     başlangıç, üst / alt çubuk, dosya menüsü, otomatik kayıt
 ```
 

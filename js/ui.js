@@ -28,10 +28,14 @@
     }
     function acilir(icerik, capa, { yer, hiza, sinif, kapaninca } = {}) {
         kapat();
-        const el = h("div.acilir" + (sinif ? "." + sinif : ""), icerik);
+        // Telefonda açılır pencereler ekranın altından, tam genişlikte açılır (perdeyle)
+        const mobil = KS.mobil();
+        const el = h("div.acilir" + (sinif ? "." + sinif : "") + (mobil ? ".alt-sayfa" : ""), icerik);
         const kap = (capa instanceof Element && capa.closest("dialog[open]")) || document.body;
+        const perde = mobil ? h("div.acilir-perde") : null;
+        if (perde) kap.append(perde);
         kap.append(el);
-        konumla(el, capa, yer, hiza);
+        if (!mobil) konumla(el, capa, yer, hiza);
         const disTik = (e) => {
             if (el.contains(e.target)) return;
             if (capa instanceof Element && capa.contains(e.target)) { e.stopPropagation(); e.preventDefault(); kapat(); return; }
@@ -43,10 +47,11 @@
         if (capa instanceof Element) capa.setAttribute("aria-expanded", "true");
         const kayit = {
             el,
-            yenidenKonumla: () => konumla(el, capa, yer, hiza),
+            yenidenKonumla: () => { if (!mobil) konumla(el, capa, yer, hiza); },
             kapat() {
                 clearTimeout(t);
                 el.remove();
+                if (perde) perde.remove();
                 document.removeEventListener("pointerdown", disTik, true);
                 document.removeEventListener("keydown", tus, true);
                 if (capa instanceof Element) capa.setAttribute("aria-expanded", "false");
@@ -512,7 +517,7 @@
             ciz();
             const kok = h("div.font-secici", h("div.ust", h("div.ara-kutu", KS.ikon("ara", 16), araGirdi), cipler), liste);
             const a = acilir(kok, capa, { yer: capa.closest && capa.closest(".sag-panel") ? "sol" : "alt", kapaninca: () => gozcu.disconnect() });
-            setTimeout(() => { araGirdi.focus(); const s = KS.$(".font-oge.sec", liste); if (s) s.scrollIntoView({ block: "center" }); }, 20);
+            setTimeout(() => { if (!KS.mobil()) araGirdi.focus(); const s = KS.$(".font-oge.sec", liste); if (s) s.scrollIntoView({ block: "center" }); }, 20);
             return a;
         }
     };

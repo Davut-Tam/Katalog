@@ -35,6 +35,10 @@
         tuval.addEventListener("dblclick", ciftTik);
         tuval.addEventListener("contextmenu", sagTik);
         tuval.addEventListener("wheel", tekerlek, { passive: false });
+        tuval.addEventListener("touchstart", tutamBaslat, { passive: false });
+        tuval.addEventListener("touchmove", tutamHareket, { passive: false });
+        tuval.addEventListener("touchend", tutamBitir);
+        tuval.addEventListener("touchcancel", tutamBitir);
         tuval.addEventListener("scroll", KS.kareBasi(() => KS.olay.yay("kaydirma")));
         tuval.addEventListener("dragover", suruklemeUzerinde);
         tuval.addEventListener("dragleave", () => birakHedef(null));
@@ -377,9 +381,16 @@
         if (document.activeElement && document.activeElement !== document.body && !tuval.contains(document.activeElement)) document.activeElement.blur();
         aktifSayfa(p.id);
         const nokta = sayfaKoordinat(p, e.clientX, e.clientY);
+        const dokunma = e.pointerType === "touch";
         if (ogeEl) {
             e.preventDefault();
             const id = ogeEl.dataset.id;
+            // Dokunmatikte çift dokunuş = çift tık (metni düzenle, görseli kırp, kartı düzenle)
+            if (dokunma) {
+                const simdi = Date.now();
+                if (sonDokunus.id === id && simdi - sonDokunus.t < 350) { sonDokunus = {}; ciftTik({ target: e.target }); return; }
+                sonDokunus = { id, t: simdi };
+            }
             const derin = e.ctrlKey || e.metaKey;
             if (e.shiftKey) {
                 const grup = derin ? [id] : grupGenislet([id]);
@@ -397,8 +408,43 @@
             const b = seciliKutu();
             if (b && nokta.x >= b.x && nokta.x <= b.x + b.w && nokta.y >= b.y && nokta.y <= b.y + b.h) { e.preventDefault(); suruklemeBaslat(e, p, nokta); return; }
         }
+        if (dokunma) {
+            // Parmakla boş alanda sürükleme sayfayı kaydırır (tarayıcı yapar); dokunup bırakmak seçimi kaldırır
+            const x0 = e.clientX, y0 = e.clientY;
+            const temizle = () => { window.removeEventListener("pointerup", birak); window.removeEventListener("pointercancel", temizle); };
+            const birak = (ev) => { temizle(); if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 10) secimTemizle(); };
+            window.addEventListener("pointerup", birak);
+            window.addEventListener("pointercancel", temizle);
+            return;
+        }
         e.preventDefault();
         alanSecimBaslat(e, p, nokta);
+    }
+    let sonDokunus = {};
+
+    // İki parmakla yakınlaştırma ve kaydırma (tuvalde tarayıcının kendi yakınlaştırması kapalı: touch-action)
+    let tutam = null;
+    const mesafe = (a, b) => Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+    const orta = (a, b) => ({ x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2 });
+    function tutamBaslat(e) {
+        if (e.touches.length !== 2) return;
+        e.preventDefault();
+        tutam = { d0: mesafe(e.touches[0], e.touches[1]), z0: E.zum, m: orta(e.touches[0], e.touches[1]) };
+        E.tutam = true;
+    }
+    function tutamHareket(e) {
+        if (!tutam || e.touches.length !== 2) return;
+        e.preventDefault();
+        const m = orta(e.touches[0], e.touches[1]);
+        zumAyarla(tutam.z0 * mesafe(e.touches[0], e.touches[1]) / tutam.d0, m);
+        tuval.scrollLeft -= m.x - tutam.m.x;
+        tuval.scrollTop -= m.y - tutam.m.y;
+        tutam.m = m;
+    }
+    function tutamBitir(e) {
+        if (!tutam || e.touches.length >= 2) return;
+        tutam = null;
+        setTimeout(() => { E.tutam = false; }, 80);
     }
 
     function izle(e, hareket, bitis) {
@@ -474,8 +520,9 @@
         let oynadi = false;
         const x0 = e.clientX, y0 = e.clientY;
         izle(e, (ev) => {
+            if (E.tutam) return; // iki parmakla yakınlaştırma sürerken öğe yerinde kalsın
             if (!oynadi) {
-                if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 4) return;
+                if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < (e.pointerType === "touch" ? 8 : 4)) return;
                 oynadi = true;
                 E.donusum = true;
                 hoverCiz(null);
@@ -567,6 +614,7 @@
         E.donusum = true;
         hoverCiz(null);
         izle(e, (ev) => {
+            if (E.tutam) return;
             const q = sayfaKoordinat(p, ev.clientX, ev.clientY);
             let ipucu = null, kilavuz = [];
             if (tur === "dondur") ipucu = dondur(bas, bb0, nokta0, q, ev, tek);
@@ -894,6 +942,7 @@
         tumunuCiz();
         if (secilsin) sec(ogeler.map((o) => o.id), { genislet: false });
         KS.gecmis.kaydet();
+        KS.olay.yay("eklendi", ogeler);
         return ogeler;
     }
     function sil(idler = E.secim) {

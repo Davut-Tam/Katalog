@@ -283,7 +283,25 @@ window.KS = window.KS || {};
         return { blob, g, y };
     };
 
+    // AbellPro mobil uygulamasının içinde (WebView) açıldıysa uygulamanın yerel sunucusu sayfaya oturum bilgisini
+    // gömer: { token, kullaniciId, adSoyad, firma }. Stoklar uygulamadaki verilerden gelir, lisans / giriş sorulmaz.
+    KS.mobilUygulama = window.ABELLPRO_UYGULAMA || null;
+    // WebView'de indirme yok: dosyalar uygulamaya verilir, uygulama paylaşım sayfasını açar (kaydet, WhatsApp, e-posta…).
+    // dosyalar: [[Blob | url, ad], …] — hepsi tek paylaşımda gider. Hata olursa fırlatır.
+    KS.mobilPaylas = async (dosyalar) => {
+        const istek = async (yol, govde, tur) => {
+            const y = await fetch(yol, { method: "POST", body: govde, headers: { Authorization: "Bearer " + KS.mobilUygulama.token, "Content-Type": tur || "application/octet-stream" } });
+            if (!y.ok) throw new Error("Dosya uygulamaya aktarılamadı: " + ((await y.text()) || y.status));
+        };
+        for (const [veri, ad] of dosyalar) {
+            const blob = typeof veri === "string" ? await (await fetch(veri)).blob() : veri;
+            await istek("/kopru/dosya?ad=" + encodeURIComponent(ad), blob, blob.type);
+        }
+        await istek("/kopru/paylas");
+    };
+
     KS.indir = (veri, ad) => {
+        if (KS.mobilUygulama) { KS.mobilPaylas([[veri, ad]]).catch((h) => KS.bildir(h.message, { tur: "hata", sure: 5000 })); return; }
         const url = typeof veri === "string" ? veri : URL.createObjectURL(veri);
         const a = KS.h("a", { href: url, download: ad });
         document.body.append(a);
@@ -366,6 +384,34 @@ window.KS = window.KS || {};
         return { x: cx + dx * c - dy * s, y: cy + dx * s + dy * c };
     };
     KS.aciNormal = (a) => { a = ((a % 360) + 360) % 360; return a > 180 ? a - 360 : a; };
+
+    // Telefon düzeni: alt gezinme çubuğu, alttan açılan paneller (CSS'teki 760 px sınırıyla aynı)
+    const mobilSorgu = matchMedia("(max-width: 760px)");
+    KS.mobil = () => mobilSorgu.matches;
+    mobilSorgu.addEventListener("change", () => KS.olay.yay("mobil", mobilSorgu.matches));
+
+    // Alttan açılan sayfanın tutamağı: dokununca ya da aşağı sürükleyince kapatır
+    KS.altSayfaTutamak = (sayfaEl, kapat) => {
+        const t = KS.h("div.sayfa-tutamak", { role: "button", "aria-label": "Kapat", title: "Kapat" }, KS.h("span"));
+        t.addEventListener("pointerdown", (e) => {
+            e.preventDefault();
+            t.setPointerCapture(e.pointerId);
+            const y0 = e.clientY, t0 = Date.now();
+            let dy = 0;
+            sayfaEl.style.transition = "none";
+            const hareket = (ev) => { dy = Math.max(0, ev.clientY - y0); sayfaEl.style.transform = `translateY(${dy}px)`; };
+            const bitir = () => {
+                t.removeEventListener("pointermove", hareket);
+                sayfaEl.style.transition = "";
+                sayfaEl.style.transform = "";
+                if (dy > 70 || (dy < 6 && Date.now() - t0 < 400)) kapat();
+            };
+            t.addEventListener("pointermove", hareket);
+            t.addEventListener("pointerup", bitir, { once: true });
+            t.addEventListener("pointercancel", bitir, { once: true });
+        });
+        return t;
+    };
 
     // Platforma göre kısayol yazımı
     KS.MAC = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);

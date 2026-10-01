@@ -34,6 +34,12 @@
         catch (h) { console.error(h); durumGoster("hata"); }
     }, 700);
     function degisti() { kayitBekliyor = true; durumGoster("bekliyor"); kaydet(); }
+    // Bekleyen kaydı beklemeden yazar (mobil uygulamada sayfadan çıkarken)
+    async function hemenKaydet() {
+        if (E.duzenlenen) KS.editor.metinBitir();
+        if (!kayitBekliyor || !E.belge) return;
+        try { await KS.depo.kaydet(E.belge); kayitBekliyor = false; durumGoster("tamam"); } catch (h) { console.error(h); }
+    }
 
     // ── Belge yükleme ───────────────────────────────────────────
     function belgeAc(belge) {
@@ -54,7 +60,7 @@
         KS.sablon.urunleriBelgeyeKat(belge, sayfalar, kullanilan);
         return belge;
     }
-    KS.uygulama = { belgeAc, sablondanBelge, yeniKatalogPenceresi, projelerPenceresi, kisayollarPenceresi, boyutDegistir };
+    KS.uygulama = { belgeAc, sablondanBelge, yeniKatalogPenceresi, projelerPenceresi, kisayollarPenceresi, boyutDegistir, hemenKaydet };
 
     // ── Dosya menüsü ────────────────────────────────────────────
     function dosyaMenusu(capa) {
@@ -63,14 +69,18 @@
             { ikon: "klasor", etiket: "Projelerim…", fn: projelerPenceresi },
             { ikon: "sablon", etiket: "Şablondan başla", fn: () => KS.paneller && KS.paneller.ac("sablonlar") },
             { ikon: "kopyala", etiket: "Kopyasını oluştur", fn: kopyaOlustur },
+            { ikon: "kalem", etiket: "Yeniden adlandır…", fn: async () => { const ad = await KS.ui.sor({ baslik: "Kataloğu adlandır", deger: E.belge.ad }); if (ad && ad.trim()) { E.belge.ad = ad.trim(); $("#belgeAdi").value = E.belge.ad; document.title = `${E.belge.ad} — Katalog Stüdyo`; KS.gecmis.kaydet(); } } },
+            { ikon: "sigdir", etiket: "Sayfa boyutu…", fn: () => setTimeout(() => boyutMenusu(capa), 0) },
             "-",
-            { ikon: "kaydet", etiket: "Proje dosyasını indir (.katalog)", fn: projeDosyasiIndir },
+            { ikon: "kaydet", etiket: KS.mobilUygulama ? "Proje dosyasını paylaş (.katalog)" : "Proje dosyasını indir (.katalog)", fn: projeDosyasiIndir },
             { ikon: "dosya", etiket: "Proje dosyası aç…", fn: projeDosyasiAc },
             "-",
             { ikon: "indir", etiket: "Dışa aktar…", kisayol: "Ctrl+E", fn: () => KS.disaaktar && KS.disaaktar.pencere() },
-            { ikon: "yazdir", etiket: "Yazdır / PDF olarak kaydet", kisayol: "Ctrl+P", fn: () => KS.disaaktar && KS.disaaktar.yazdir() },
+            // Mobil uygulamanın WebView'inde yazdırma penceresi yok; telefonda klavye kısayolu yok
+            KS.mobilUygulama ? null : { ikon: "yazdir", etiket: "Yazdır / PDF olarak kaydet", kisayol: "Ctrl+P", fn: () => KS.disaaktar && KS.disaaktar.yazdir() },
             "-",
-            { ikon: "klavye", etiket: "Klavye kısayolları", kisayol: "?", fn: kisayollarPenceresi }
+            { ikon: document.documentElement.dataset.tema === "koyu" || (!document.documentElement.dataset.tema && matchMedia("(prefers-color-scheme: dark)").matches) ? "gunes" : "ay", etiket: "Açık / koyu tema", fn: temaDegistir },
+            KS.mobil() ? null : { ikon: "klavye", etiket: "Klavye kısayolları", kisayol: "?", fn: kisayollarPenceresi }
         ], capa);
     }
     async function kopyaOlustur() {
@@ -474,6 +484,8 @@
     async function baslat() {
         let tema = null;
         try { tema = localStorage.getItem("ks-tema"); } catch (h) { /* yok say */ }
+        // Mobil uygulamada, kullanıcı katalogda tema seçmediyse uygulamanın teması
+        if (!tema && KS.mobilUygulama) tema = KS.mobilUygulama.tema || null;
         temaUygula(tema);
         matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => temaUygula(document.documentElement.dataset.tema || null));
 
@@ -506,6 +518,7 @@
         altCubukKur();
         if (KS.paneller) KS.paneller.baslat($("#ray"), $("#solPanel"));
         if (KS.ozellikler) KS.ozellikler.baslat($("#sagPanel"));
+        if (KS.mobilArayuz) KS.mobilArayuz.baslat();
 
         KS.olay.on("gecmis", () => {
             $("#geriDugme").disabled = !KS.gecmis.geriVar();
@@ -519,7 +532,7 @@
         KS.olay.on("arkaplan-yap", arkaplanYap);
         KS.olay.on("ayristir", urunuAyristir);
         KS.olay.on("kaydet-iste", () => { kaydet.hemen(); KS.bildir("Kaydedildi", { tur: "basari" }); });
-        KS.olay.on("yazdir-iste", () => KS.disaaktar && KS.disaaktar.yazdir());
+        KS.olay.on("yazdir-iste", () => { if (KS.disaaktar && !KS.mobilUygulama) KS.disaaktar.yazdir(); });
         document.addEventListener("keydown", (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "e" && !document.querySelector("dialog[open]")) { e.preventDefault(); KS.disaaktar && KS.disaaktar.pencere(); }
         });

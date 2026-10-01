@@ -30,7 +30,9 @@
         }
         govde = h("div.panel-ic");
         kapatDugme = h("button.panel-kapat", { type: "button", title: "Paneli gizle", onclick: () => (kap.classList.contains("kapali") ? ac(acik || "sablonlar") : kapat()) }, KS.ikon("sol", 12));
-        kap.append(govde, kapatDugme);
+        kap.append(KS.altSayfaTutamak(kap, kapat), govde, kapatDugme);
+        // Telefonda panelden öğe eklenince sayfa kapansın, eklenen öğe görünsün
+        KS.olay.on("eklendi", () => { if (KS.mobil() && !kap.classList.contains("kapali")) kapat(); });
         const yenile = (ad) => () => { if (acik === ad && !kap.classList.contains("kapali")) ciz(); };
         KS.olay.on("belge", () => { if (!kap.classList.contains("kapali")) ciz(); });
         KS.olay.on("urunler", yenile("urunler"));
@@ -285,12 +287,14 @@
         }
         const a = ap.ayar(), f = a.firma || {};
         const menu = h("button.ikon-dugme.kucuk", { type: "button", title: "AbellPro seçenekleri" }, KS.ikon("menu", 16));
+        // Mobil uygulamanın içinde oturum ve lisans uygulamanındır; burada kapatılmaz
         menu.addEventListener("click", () => KS.ui.menu([
             { ikon: "marka", etiket: "Firma bilgilerini al (ad, telefon, logo)", fn: ap.firmaBilgisiAl },
             { ikon: "ayar", etiket: "Bağlantı bilgileri", fn: () => ap.baglantiPenceresi({}) },
-            "-",
-            { ikon: "kilitAcik", etiket: "Oturumu kapat", fn: ap.cikis },
-            { ikon: "sil", etiket: "Lisansı bu tarayıcıdan kaldır", tehlike: true, fn: ap.lisansiSifirla }
+            ...(ap.uygulama ? [] : [
+                "-",
+                { ikon: "kilitAcik", etiket: "Oturumu kapat", fn: ap.cikis },
+                { ikon: "sil", etiket: "Lisansı bu tarayıcıdan kaldır", tehlike: true, fn: ap.lisansiSifirla }])
         ], menu));
         return h("div.ap-kart.bagli",
             h("div.ap-kart-ust", h("span.ap-nokta"), h("div", h("b", f.kisaAd || f.unvan || "AbellPro"), h("small", a.adSoyad)), menu),
@@ -662,7 +666,7 @@
         guncelle();
         KS.ui.pencere({
             baslik: "Ürünleri sayfalara yerleştir", aciklama: "Ürün listeniz, etkin sayfanın düzeniyle otomatik olarak sayfalara dağıtılır.", sinif: "genis",
-            icerik: h("div", { style: { display: "grid", gridTemplateColumns: "1fr 240px", gap: "24px" } }, form, onizlemeKutu),
+            icerik: h("div.iki-sutun", form, onizlemeKutu),
             dugmeler: [{ etiket: "Vazgeç" }, {
                 etiket: "Yerleştir", birincil: true, ikon: "sihir", fn: () => {
                     const l = urunListesi();

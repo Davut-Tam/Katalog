@@ -7,9 +7,11 @@
     const E = KS.E;
     const U = () => KS.ui;
 
-    let kap, baglar = [], kimlikler = [];
+    let kap, baglar = [], kimlikler = [], tutamak;
     function baslat(el) {
         kap = el;
+        // Telefonda panel alttan açılan sayfadır; tutamağı her yeniden kurulumda başa konur
+        tutamak = KS.altSayfaTutamak(kap, kapat);
         KS.olay.on("secim", kur);
         KS.olay.on("belge", kur);
         KS.olay.on("sayfa", () => { if (!E.secim.length) kur(); });
@@ -60,10 +62,14 @@
         let icerik;
         if (!l.length) icerik = sayfaPaneli();
         else icerik = ogePaneli(l);
-        kap.replaceChildren(...[].concat(icerik));
-        kap.scrollTop = kimlikler.join() === kur.son ? kaydirma : 0;
+        kap.replaceChildren(tutamak, ...[].concat(icerik));
+        const onceki = kur.son;
+        kap.scrollTop = kimlikler.join() === onceki ? kaydirma : 0;
         kur.son = kimlikler.join();
-        kap.classList.toggle("acik", l.length > 0);
+        // Tablette seçim olunca kendiliğinden kayar; telefonda yalnız "Düzenle" ile açılır, seçim kalkınca kapanır
+        // (sayfa ayarları açıkken yapılan değişiklikler sayfayı kapatmasın)
+        if (!KS.mobil()) kap.classList.toggle("acik", l.length > 0);
+        else if (!l.length && onceki) kap.classList.remove("acik");
     }
 
     function odakla(tur) {
@@ -73,6 +79,7 @@
     }
 
     // ── Başlık ve eylemler ──────────────────────────────────────
+    const kapatDugmesi = () => h("button.ikon-dugme.yalniz-mobil", { type: "button", title: "Kapat", onclick: () => kapat() }, KS.ikon("kapat", 18));
     const TUR_IKON = { metin: "metin", sekil: "ogeler", gorsel: "gorsel", urun: "urun", fiyat: "etiket", qr: "qr" };
     function kafa(l) {
         const tek = l.length === 1 ? l[0] : null;
@@ -82,7 +89,7 @@
         const kilitli = l.every((o) => o.kilit);
         const grupVar = l.some((o) => o.grup);
         return [
-            h("div.oz-kafa", h("span.tur-ikon", KS.ikon(tek ? TUR_IKON[tek.tur] : "izgara", 17)), h("div.baslik", h("b", ad), h("small", alt))),
+            h("div.oz-kafa", h("span.tur-ikon", KS.ikon(tek ? TUR_IKON[tek.tur] : "izgara", 17)), h("div.baslik", h("b", ad), h("small", alt)), kapatDugmesi()),
             h("div.oz-eylemler",
                 dugme("kopyala", "Çoğalt (Ctrl+D)", () => KS.editor.cogalt()),
                 dugme(kilitli ? "kilit" : "kilitAcik", kilitli ? "Kilidi aç" : "Kilitle", () => { KS.editor.kilitle(); kur(); }, kilitli ? ".aktif" : ""),
@@ -607,7 +614,7 @@
         const kartSayisi = b.sayfalar.reduce((t, x) => t + x.ogeler.filter((o) => o.tur === "urun").length, 0);
         const boyutAd = (KS.BOYUTLAR.find((x) => x.g === b.genislik && x.y === b.yukseklik) || {}).ad || "Özel boyut";
         return [
-            h("div.oz-kafa", h("span.tur-ikon", KS.ikon("sayfa", 17)), h("div.baslik", h("b", `Sayfa ${no}`), h("small", "Hiçbir öğe seçili değil"))),
+            h("div.oz-kafa", h("span.tur-ikon", KS.ikon("sayfa", 17)), h("div.baslik", h("b", `Sayfa ${no}`), h("small", "Hiçbir öğe seçili değil")), kapatDugmesi()),
             bolum("Sayfa", h("div", { style: { display: "grid", gap: "8px" } },
                 alan("Arka plan", sayfaRenk.el),
                 h("div", { style: { display: "flex", gap: "6px", flexWrap: "wrap" } },
@@ -635,5 +642,23 @@
         return h("div", h("p.ipucu-metin", { style: { marginTop: 0 } }, "Katalogdaki bütün ürün kartlarının düzenini ya da renk temasını tek tıkla değiştirin."), duzen, h("div.bolum-baslik", "Renk teması"), temalar);
     }
 
-    KS.ozellikler = { baslat, kur, yenile, KART_TEMALARI };
+    // Telefonda paneli aç: seçili öğe sayfanın üstünde görünür kalsın diye tuval kaydırılır
+    function ac() {
+        kap.classList.add("acik");
+        const l = KS.editor.seciliOgeler();
+        if (!KS.mobil() || !l.length) return;
+        const b = KS.kutuBirlesim(l.map(KS.kutu));
+        const p = KS.editor.sayfaElemani();
+        if (!p) return;
+        const tuval = KS.editor.tuval();
+        const r = p.cerceve.getBoundingClientRect(), tr = tuval.getBoundingClientRect();
+        const panelUst = innerHeight - kap.offsetHeight; // açılış animasyonu sürerken gerçek yer henüz belli değil
+        const hedefY = tr.top + Math.max(40, (panelUst - tr.top) / 2);
+        const ogeY = r.top + (b.y + b.h / 2) * KS.E.zum;
+        tuval.scrollBy({ top: ogeY - hedefY, behavior: "smooth" });
+    }
+    function kapat() { kap.classList.remove("acik"); }
+    const acikMi = () => kap.classList.contains("acik");
+
+    KS.ozellikler = { baslat, kur, yenile, ac, kapat, acikMi, KART_TEMALARI };
 })();

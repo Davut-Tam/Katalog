@@ -14,7 +14,12 @@
     const ANAHTAR = "ks-abellpro";
     const VARSAYILAN = { sunucu: "", token: "", lisansBitis: null, kullaniciId: "", adSoyad: "", kullanici: "", firma: null };
 
-    let ayar = oku();
+    // Mobil uygulamanın içinde: uygulamanın yerel sunucusu Katalog uçlarını cihazdaki verilerle yanıtlar,
+    // oturum sayfaya gömülü gelir (bkz. KS.mobilUygulama). Lisans, giriş ve ayar saklama yoktur.
+    const uygulama = KS.mobilUygulama;
+    let ayar = uygulama
+        ? Object.assign({}, VARSAYILAN, { sunucu: location.origin, token: uygulama.token, kullaniciId: String(uygulama.kullaniciId || "uygulama"), adSoyad: uygulama.adSoyad || "", firma: uygulama.firma || null })
+        : oku();
     // Katalog AbellPro API'nin içinden açıldıysa (https://api.firma.com.tr/katalog/) sunucu adresi bellidir
     const yerelSunucu = (() => {
         if (!/^https?:$/.test(location.protocol)) return "";
@@ -27,6 +32,7 @@
         catch (h) { return Object.assign({}, VARSAYILAN); }
     }
     function yaz(degisen) {
+        if (uygulama) return;
         Object.assign(ayar, degisen);
         try { localStorage.setItem(ANAHTAR, JSON.stringify(ayar)); } catch (h) { /* gizli pencere */ }
         KS.olay.yay("abellpro");
@@ -91,7 +97,16 @@
 
     // ── Bağlantı sihirbazı ──────────────────────────────────────
     function baglantiPenceresi({ sonra } = {}) {
-        let adim = !ayar.sunucu ? "sunucu" : !lisansli() ? "lisans" : !ayar.kullaniciId ? "giris" : "tamam";
+        if (uygulama) {
+            const f = ayar.firma || {};
+            return KS.ui.pencere({
+                baslik: "AbellPro bağlantısı", sinif: "dar",
+                icerik: h("div", h("div.ap-tamam", KS.ikon("tamam", 28), h("div", h("b", f.kisaAd || f.unvan || "AbellPro"), h("small", ayar.adSoyad || "AbellPro uygulaması"))),
+                    h("p.ipucu-metin", "Katalog AbellPro uygulamasının içinden açıldı. Stoklar, fiyatlar ve resimler uygulamadaki güncel verilerden alınır; ayrıca lisans ya da giriş gerekmez.")),
+                dugmeler: [{ etiket: "Tamam", birincil: true }]
+            });
+        }
+        let adim =!ayar.sunucu ? "sunucu" : !lisansli() ? "lisans" : !ayar.kullaniciId ? "giris" : "tamam";
         let kodMaili = true;
         const govde = h("div.ap-sihirbaz");
         const durum = h("p.ipucu-metin", { style: { minHeight: "18px", margin: "10px 0 0" } });
@@ -214,7 +229,8 @@
         if (!bagli()) { baglantiPenceresi({ sonra: fn }); return; }
         try { await fn(); }
         catch (h) {
-            if (h.yetkisiz) {
+            if (h.yetkisiz && uygulama) KS.bildir("Uygulama bağlantısı yenilendi; sayfayı kapatıp yeniden açın.", { tur: "hata", sure: 5000 });
+            else if (h.yetkisiz) {
                 yaz({ kullaniciId: "" });
                 KS.bildir("AbellPro oturumu geçersiz; yeniden giriş yapın.", { tur: "hata", sure: 4000 });
                 baglantiPenceresi({ sonra: fn });
@@ -527,7 +543,7 @@
     }
 
     KS.abellpro = {
-        bagli, lisansli, ayar: () => ayar, baglantiPenceresi, stokPenceresi, guncelle, firmaBilgisiAl, cikis, lisansiSifirla,
+        bagli, lisansli, ayar: () => ayar, uygulama: !!uygulama, baglantiPenceresi, stokPenceresi, guncelle, firmaBilgisiAl, cikis, lisansiSifirla,
         orijinaleDondur, baglantiyiKaldir, cihazNo, api
     };
 })();
