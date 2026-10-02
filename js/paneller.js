@@ -194,6 +194,10 @@
 
     // ── Ürünler ─────────────────────────────────────────────────
     let urunAra = "", urunKategori = "Tümü", acikUrun = null;
+    // Binlerce ürün olabilir: liste parça parça çizilir, kaydırdıkça devamı gelir.
+    // Gösterilen satır sayısı panel yeniden çizilince korunur (düzenlenen ürün ve kaydırma konumu kaybolmasın).
+    const URUN_PARTI = 120;
+    let urunGosterim = URUN_PARTI;
     const EMOJI_SOZLUK = [
         ["zeytinyağ", "🫒"], ["meyve suyu", "🧃"], ["portakal suyu", "🧃"], ["süt", "🥛"], ["ayran", "🥛"], ["peynir", "🧀"], ["kaşar", "🧀"], ["yumurta", "🥚"], ["tereyağ", "🧈"], ["margarin", "🧈"],
         ["bal", "🍯"], ["reçel", "🍯"], ["zeytin", "🫒"], ["yoğurt", "🥣"], ["elma", "🍎"], ["armut", "🍐"], ["portakal", "🍊"], ["mandalina", "🍊"], ["limon", "🍋"], ["muz", "🍌"],
@@ -219,8 +223,12 @@
 
     function urunGorselEl(u, boyut = 44) {
         if (u.gorsel && u.gorsel.varlik) {
-            const url = KS.varlik.url(u.gorsel.varlik);
-            return url ? h("img", { src: url, alt: "" }) : h("span", "🖼️");
+            const id = u.gorsel.varlik, url = KS.varlik.url(id);
+            if (url) return h("img", { src: url, alt: "" });
+            // Henüz depodan okunmadı (ürün resimleri açılışta topluca yüklenmez): gelince yerine konur
+            const yer = h("span", "🖼️");
+            KS.varlik.bekle(id).then((v) => { if (v && yer.isConnected) yer.replaceWith(h("img", { src: v.url, alt: "" })); });
+            return yer;
         }
         return h("span", { style: { fontSize: boyut * 0.6 + "px" } }, (u.gorsel && u.gorsel.emoji) || "🛒");
     }
@@ -233,7 +241,7 @@
         const urunler = E.belge.urunler;
         const iceAktar = h("button.dugme.kucuk", { type: "button" }, KS.ikon("tablo", 16), "İçe aktar");
         iceAktar.addEventListener("click", () => KS.ui.menu([
-            { ikon: "baglanti", etiket: "AbellPro'dan ürün al…", fn: () => KS.abellpro.stokPenceresi() },
+            { ikon: "baglanti", etiket: "AbellPro'dan tüm ürünleri al", fn: () => KS.abellpro.hepsiniAl() },
             { ikon: "tablo", etiket: "Excel / tablo yapıştır…", fn: () => iceAktarPenceresi() },
             { ikon: "dosya", etiket: "Dosyadan (.xlsx, .csv)…", fn: async () => { const [d] = await KS.dosyaSec({ kabul: ".xlsx,.xls,.csv,.txt,.tsv" }); if (d) iceAktarPenceresi(d); } },
             { ikon: "gorsel", etiket: "Görselleri toplu eşleştir…", pasif: !urunler.length, fn: gorselEslestirPenceresi },
@@ -248,13 +256,15 @@
         ], iceAktar));
         const ekle = h("button.dugme.kucuk.birincil", { type: "button", onclick: yeniUrun }, KS.ikon("arti", 16), "Ürün ekle");
         const ara = h("input", { type: "search", placeholder: "Ürün ara…", value: urunAra });
-        ara.addEventListener("input", () => { urunAra = ara.value; listeCiz(); });
+        ara.addEventListener("input", () => { urunAra = ara.value; urunGosterim = URUN_PARTI; listeCiz(); });
         ara.addEventListener("keydown", (e) => e.stopPropagation());
         const kategoriler = ["Tümü", ...new Set(urunler.map((u) => u.kategori).filter(Boolean))];
         if (!kategoriler.includes(urunKategori)) urunKategori = "Tümü";
-        const cipler = h("div.cipler", kategoriler.map((k) => h("button.cip", { type: "button", "aria-pressed": String(k === urunKategori), onclick: () => { urunKategori = k; ciz(); } }, k)));
+        const cipler = h("div.cipler", kategoriler.map((k) => h("button.cip", { type: "button", "aria-pressed": String(k === urunKategori), onclick: () => { urunKategori = k; urunGosterim = URUN_PARTI; ciz(); } }, k)));
         const liste = h("div");
+        let gozcu = null;
         function listeCiz() {
+            if (gozcu) { gozcu.disconnect(); gozcu = null; }
             const l = urunlerSuzulmus();
             if (!urunler.length) {
                 liste.replaceChildren(h("div.bos-durum", KS.ikon("urun", 34), h("p", "Ürün listeniz boş."), h("p.ipucu-metin", "Ürünleri tek tek ekleyin ya da Excel'den kopyalayıp yapıştırın."),
@@ -262,7 +272,30 @@
                 return;
             }
             if (!l.length) { liste.replaceChildren(h("div.bos-durum", "Aramaya uyan ürün yok")); return; }
-            liste.replaceChildren(...l.map(urunSatiri));
+            // Düzenlenen ürün görünür kalsın
+            const acikSira = acikUrun ? l.findIndex((u) => u.id === acikUrun) : -1;
+            if (acikSira >= urunGosterim) urunGosterim = acikSira + 20;
+            liste.replaceChildren(...l.slice(0, urunGosterim).map(urunSatiri));
+            devamEkle(l);
+        }
+        function devamEkle(l) {
+            const kalan = l.length - liste.querySelectorAll(":scope > .urun-satir").length;
+            if (kalan <= 0) return;
+            const d = h("button.dugme.kucuk.genis.liste-devam", { type: "button" }, `${kalan.toLocaleString("tr-TR")} ürün daha`);
+            const yukle = () => {
+                if (gozcu) { gozcu.disconnect(); gozcu = null; }
+                const bas = urunGosterim;
+                urunGosterim += URUN_PARTI;
+                d.replaceWith(...l.slice(bas, urunGosterim).map(urunSatiri));
+                devamEkle(l);
+            };
+            d.addEventListener("click", yukle);
+            liste.append(d);
+            // Kaydırıp sona yaklaşınca kendiliğinden
+            if (window.IntersectionObserver) {
+                gozcu = new IntersectionObserver((g) => { if (g.some((x) => x.isIntersecting)) yukle(); }, { rootMargin: "300px" });
+                gozcu.observe(d);
+            }
         }
         listeCiz();
         const yerlestir = h("button.dugme.birincil.genis", { type: "button", onclick: yerlesimPenceresi, disabled: !urunler.length }, KS.ikon("sihir", 17), "Ürünleri sayfalara yerleştir");
@@ -281,13 +314,14 @@
         if (!ap) return null;
         const bagliSayi = E.belge.urunler.filter((u) => u.kaynak && u.kaynak.sistem === "abellpro").length;
         if (!ap.bagli()) {
-            return h("button.buyuk-dugme.ap-kart", { type: "button", onclick: () => ap.baglantiPenceresi({ sonra: ap.stokPenceresi }) },
+            return h("button.buyuk-dugme.ap-kart", { type: "button", onclick: () => ap.baglantiPenceresi({ sonra: ap.hepsiniAl }) },
                 h("span.ikon-kutu", KS.ikon("baglanti", 19)),
                 h("div", h("b", "AbellPro'ya bağlan"), h("small", "Stok adları, fiyatları ve resimleri otomatik gelsin")));
         }
         const a = ap.ayar(), f = a.firma || {};
         const menu = h("button.ikon-dugme.kucuk", { type: "button", title: "AbellPro seçenekleri" }, KS.ikon("menu", 16));
         menu.addEventListener("click", () => KS.ui.menu([
+            { ikon: "liste", etiket: "Seçerek ürün ekle…", fn: ap.stokPenceresi },
             { ikon: "marka", etiket: "Firma bilgilerini al (ad, telefon, logo)", fn: ap.firmaBilgisiAl },
             { ikon: "ayar", etiket: "Bağlantı bilgileri", fn: () => ap.baglantiPenceresi({}) },
             "-",
@@ -297,7 +331,7 @@
         return h("div.ap-kart.bagli",
             h("div.ap-kart-ust", h("span.ap-nokta"), h("div", h("b", f.kisaAd || f.unvan || "AbellPro"), h("small", a.adSoyad)), menu),
             h("div.ap-kart-eylem",
-                h("button.dugme.kucuk.birincil", { type: "button", onclick: ap.stokPenceresi }, KS.ikon("arti", 15), "Stok ekle"),
+                h("button.dugme.kucuk.birincil", { type: "button", onclick: ap.hepsiniAl, title: "AbellPro'daki bütün aktif stoklar resimleriyle gelir; listede olanlar güncellenir" }, KS.ikon("indir", 15), "Tüm ürünleri al"),
                 h("button.dugme.kucuk", { type: "button", onclick: ap.guncelle, disabled: !bagliSayi, title: "Fiyat, ad ve resimleri AbellPro'dan tazele (elle değiştirdikleriniz korunur)" }, KS.ikon("yenile", 15), bagliSayi ? `Güncelle (${bagliSayi})` : "Güncelle")));
     }
     function urunSatiri(u) {

@@ -240,32 +240,38 @@
         };
     }
     const ALANLAR = ["ad", "fiyat", "eski", "kategori", "birim", "aciklama"];
-    async function resimAl(s) {
+    // Ürün resmi: kartta en çok birkaç yüz piksel gösterilir; toplu alımda depoyu şişirmemek için daha küçük tutulur.
+    // "kaynak" işareti Yüklemeler panelinin bu resimleri listelememesi içindir (binlerce olabilir).
+    async function resimAl(s, enCok = 1400) {
         const blob = await api(`Katalog/Resim/${s.id}`, { blob: true });
         const dosya = new File([blob], `${s.id}.png`, { type: blob.type || "image/png" });
-        const { blob: kucuk, g, y } = await KS.resmiHazirla(dosya, 1400);
-        return KS.varlik.ekle(kucuk, { g, y, ad: s.stokAdi });
+        const { blob: kucuk, g, y } = await KS.resmiHazirla(dosya, enCok);
+        return KS.varlik.ekle(kucuk, { g, y, ad: s.stokAdi, kaynak: "abellpro" });
     }
-    // Yeni ürün oluşturur (listeye eklemeden döndürür) ya da listede zaten varsa onu tazeler
-    async function urunEkle(s, resimler) {
-        let u = E.belge.urunler.find((x) => x.kaynak && x.kaynak.sistem === "abellpro" && x.kaynak.stokId === s.id);
-        if (u) return { u, yeni: false, degisti: await urunuGuncelle(u, s, resimler) };
+    // Stoktan yeni katalog ürünü oluşturur (listeye eklemez)
+    async function yeniUrun(s, resimler, enCok) {
         const a = alanlar(s);
-        u = Object.assign({ id: KS.kimlik("u"), rozet: "", gorsel: { varlik: null, emoji: KS.emojiTahmin ? KS.emojiTahmin(a.ad) : "🛒" } }, a, {
+        const u = Object.assign({ id: KS.kimlik("u"), rozet: "", gorsel: { varlik: null, emoji: KS.emojiTahmin ? KS.emojiTahmin(a.ad) : "🛒" } }, a, {
             kaynak: Object.assign({ sistem: "abellpro", stokId: s.id, kod: s.kod, barkod: ilkBarkod(s.barkod), resimSurum: null, varlik: null }, a)
         });
         if (resimler && s.resimVar) {
             try {
-                const vid = await resimAl(s);
+                const vid = await resimAl(s, enCok);
                 u.gorsel = { varlik: vid, emoji: null };
                 u.kaynak.varlik = vid;
                 u.kaynak.resimSurum = s.resimSurum;
             } catch (h) { /* resim alınamazsa emoji kalır */ }
         }
-        return { u, yeni: true };
+        return u;
+    }
+    // Yeni ürün oluşturur (listeye eklemeden döndürür) ya da listede zaten varsa onu tazeler
+    async function urunEkle(s, resimler) {
+        const u = E.belge.urunler.find((x) => x.kaynak && x.kaynak.sistem === "abellpro" && x.kaynak.stokId === s.id);
+        if (u) return { u, yeni: false, degisti: await urunuGuncelle(u, s, resimler) };
+        return { u: await yeniUrun(s, resimler), yeni: true };
     }
     // Üç yollu birleştirme: kullanıcının katalogda değiştirdiği alan korunur, değiştirmediği güncellenir
-    async function urunuGuncelle(u, s, resimler = true) {
+    async function urunuGuncelle(u, s, resimler = true, enCok) {
         const yeni = alanlar(s);
         const k = u.kaynak;
         const ozet = { fiyat: false, diger: false, resim: false };
@@ -280,10 +286,11 @@
         k.kod = s.kod;
         k.barkod = ilkBarkod(s.barkod);
         k.pasif = !s.durum;
+        delete k.silindi;   // stok yeniden bulundu
         const resimElle = u.gorsel && u.gorsel.varlik && u.gorsel.varlik !== k.varlik;
         if (resimler && s.resimVar && s.resimSurum !== k.resimSurum && !resimElle) {
             try {
-                const vid = await resimAl(s);
+                const vid = await resimAl(s, enCok);
                 u.gorsel = { varlik: vid, emoji: null };
                 k.varlik = vid;
                 k.resimSurum = s.resimSurum;
@@ -365,6 +372,99 @@
             KS.olay.yay("belge");
             KS.bildir(`Firma bilgileri alındı${n ? `; sayfalarda ${n} yazı güncellendi` : ""}`, { tur: "basari" });
         });
+    }
+
+    // ── Tüm ürünleri al ─────────────────────────────────────────
+    // Seçim sormadan AbellPro'daki bütün aktif stokları resimleriyle listeye getirir. Listede zaten olanlar güncellenir
+    // (katalogda elle değiştirilen alanlar korunur). Pasif stoklar yeni eklenmez. İş sürerken ilerleme gösterilir;
+    // "Durdur" ya da pencereyi kapatmak o ana kadar gelenleri bırakır.
+    const TOPLU_RESIM = 1000;   // toplu alımda resim uzun kenarı (kartta fazlasıyla yeterli, depoyu şişirmez)
+    function hepsiniAl() { return oturumGerekli(tumunuGetir); }
+    async function tumunuGetir() {
+        let durdu = false, durDugme;
+        const f = ayar.firma || {};
+        const baslik = h("b", "Stok listesi alınıyor…");
+        const cubuk = h("div.ilerleme", h("div"));
+        const alt = h("p.ipucu-metin", { style: { margin: "4px 0 0" } }, "AbellPro'ya bağlanılıyor…");
+        const ilerle = (o) => { cubuk.firstChild.style.width = Math.round(o * 100) + "%"; };
+        const p = KS.ui.pencere({
+            baslik: "AbellPro'dan ürünler alınıyor", aciklama: `${f.kisaAd || f.unvan || "AbellPro"} · ${ayar.adSoyad}`, sinif: "dar",
+            icerik: h("div", baslik, cubuk, alt,
+                h("p.ipucu-metin", { style: { margin: "10px 0 0" } }, "Bütün aktif stoklar resimleriyle gelir; listede olanlar güncellenir. Çok sayıda üründe birkaç dakika sürebilir.")),
+            dugmeler: [{ etiket: "Durdur", ref: (b) => { durDugme = b; }, fn: () => { durdu = true; durDugme.disabled = true; durDugme.textContent = "Durduruluyor…"; return false; } }],
+            kapaninca: () => { durdu = true; }
+        });
+        const kapat = () => p.kapat();
+        let yeni = 0, degisen = 0, resim = 0, n = 0, listeTam = false;
+        const guncellenen = [];
+        try {
+            // 1. Bütün stok listesi (500'erli sayfalar)
+            const stoklar = [];
+            let toplam = 0;
+            for (let sayfa = 1; !durdu; sayfa++) {
+                const d = await api(`Katalog/Stoklar?sayfa=${sayfa}&adet=500`);
+                toplam = d.toplam || 0;
+                stoklar.push(...(d.liste || []));
+                alt.textContent = `${stoklar.length.toLocaleString("tr-TR")} / ${toplam.toLocaleString("tr-TR")} stok bilgisi alındı`;
+                ilerle(0.08 * stoklar.length / Math.max(1, toplam));
+                if (!d.liste || !d.liste.length || stoklar.length >= toplam) { listeTam = true; break; }
+            }
+            if (durdu) { kapat(); KS.bildir("Ürün alımı durduruldu; listeye bir şey eklenmedi."); return; }
+
+            // 2. Listede olan AbellPro ürünleri güncellenir; pasif stoklar yeni eklenmez
+            const varOlan = new Map();
+            for (const u of E.belge.urunler) if (u.kaynak && u.kaynak.sistem === "abellpro") varOlan.set(u.kaynak.stokId, u);
+            const islenecek = stoklar.filter((s) => s.durum || varOlan.has(s.id));
+            const pasif = stoklar.length - islenecek.length;
+            // Liste yalnız şablondan gelen örnek ürünlerden oluşuyorsa onlar çıkarılır (sayfadaki kartlar yerinde kalır)
+            const ornekAdlar = new Set((KS.ORNEK_URUNLER || []).map((x) => x.ad));
+            if (islenecek.length && E.belge.urunler.length && E.belge.urunler.every((u) => !u.kaynak && ornekAdlar.has(u.ad))) E.belge.urunler = [];
+
+            // 3. Ürünler ve resimler (aynı anda 6 istek); her parçadan sonra listeye eklenir, arada depoya yazılır
+            baslik.textContent = "Ürünler ve resimler alınıyor…";
+            const PARCA = 60;
+            for (let i = 0; i < islenecek.length && !durdu; i += PARCA) {
+                const parca = islenecek.slice(i, i + PARCA), yeniler = new Array(parca.length);
+                await sirayla(parca, 6, async (s, j) => {
+                    if (durdu) return;
+                    const u = varOlan.get(s.id);
+                    if (u) {
+                        const o = await urunuGuncelle(u, s, true, TOPLU_RESIM);
+                        if (o.resim) resim++;
+                        if (o.fiyat || o.diger || o.resim) { degisen++; guncellenen.push(u); }
+                    } else {
+                        const y = await yeniUrun(s, true, TOPLU_RESIM);
+                        if (y.gorsel.varlik) resim++;
+                        yeniler[j] = y;
+                        yeni++;
+                    }
+                    n++;
+                });
+                E.belge.urunler.push(...yeniler.filter(Boolean));
+                alt.textContent = `${n.toLocaleString("tr-TR")} / ${islenecek.length.toLocaleString("tr-TR")} ürün · ${resim.toLocaleString("tr-TR")} resim`;
+                ilerle(0.08 + 0.92 * n / islenecek.length);
+                if ((i / PARCA) % 10 === 9) { KS.olay.yay("urunler"); KS.depo.kaydet(E.belge).catch(() => {}); }
+            }
+
+            // 4. AbellPro'da artık olmayan bağlı ürünler işaretlenir (yalnız liste eksiksiz alındıysa)
+            if (listeTam && !durdu) {
+                const idler = new Set(stoklar.map((s) => s.id));
+                for (const [id, u] of varOlan) if (!idler.has(id)) u.kaynak.silindi = true;
+            }
+            const sonuc = [`${yeni.toLocaleString("tr-TR")} ürün eklendi`, degisen ? `${degisen.toLocaleString("tr-TR")} ürün güncellendi` : "", pasif ? `${pasif.toLocaleString("tr-TR")} pasif stok atlandı` : ""].filter(Boolean).join(", ");
+            const durduruldu = durdu;   // pencerenin kapanması da durdu'yu açar; önce oku
+            kapat();
+            KS.bildir((durduruldu ? "Durduruldu: " : "") + sonuc, { tur: "basari", sure: 7000, eylem: yeni ? { metin: "Sayfalara yerleştir", fn: () => KS.paneller.yerlesimPenceresi() } : null });
+        } catch (hata) {
+            kapat();
+            throw hata;   // oturum düşmüşse oturumGerekli yeniden giriş ister
+        } finally {
+            for (const u of guncellenen) KS.editor.urunKartlariniEsitle(u);
+            KS.editor.tumunuCiz();
+            KS.gecmis.kaydet();
+            KS.olay.yay("urunler");
+            if (KS.paneller.aktif() !== "urunler") KS.paneller.ac("urunler");
+        }
     }
 
     // ── Stok seçme penceresi ────────────────────────────────────
@@ -496,13 +596,9 @@
         });
     }
     async function topluEkle(stoklar, resimler) {
-        // Liste yalnız şablondan gelen örnek ürünlerden oluşuyorsa, gerçek ürünler gelirken onları kaldırmayı öner
+        // Liste yalnız şablondan gelen örnek ürünlerden oluşuyorsa gerçek ürünler gelirken onlar çıkarılır (sayfadaki kartlar yerinde kalır)
         const ornekAdlar = new Set((KS.ORNEK_URUNLER || []).map((x) => x.ad));
-        const ornekler = E.belge.urunler.filter((u) => !u.kaynak && ornekAdlar.has(u.ad));
-        if (ornekler.length && ornekler.length === E.belge.urunler.length &&
-            await KS.ui.onayla({ baslik: "Örnek ürünler", metin: `Listede şablondan gelen ${ornekler.length} örnek ürün var. AbellPro ürünleri eklenirken bunlar listeden kaldırılsın mı? (Sayfadaki kartlar yerinde kalır.)`, evet: "Kaldır", hayir: "Kalsın" })) {
-            E.belge.urunler = [];
-        }
+        if (stoklar.length && E.belge.urunler.length && E.belge.urunler.every((u) => !u.kaynak && ornekAdlar.has(u.ad))) E.belge.urunler = [];
         const bildirim = KS.bildir(`Ürünler ekleniyor… 0 / ${stoklar.length}`, { sure: 600000 });
         const yeniler = new Array(stoklar.length);
         let yeni = 0, guncel = 0, n = 0;
@@ -527,7 +623,7 @@
     }
 
     KS.abellpro = {
-        bagli, lisansli, ayar: () => ayar,baglantiPenceresi, stokPenceresi, guncelle, firmaBilgisiAl, cikis, lisansiSifirla,
+        bagli, lisansli, ayar: () => ayar, baglantiPenceresi, stokPenceresi, hepsiniAl, guncelle, firmaBilgisiAl, cikis, lisansiSifirla,
         orijinaleDondur, baglantiyiKaldir, cihazNo, api
     };
 })();

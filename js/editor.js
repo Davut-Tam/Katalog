@@ -75,7 +75,8 @@
         for (const p of sayfaEl.values()) p.blok.remove();
         sayfaEl.clear();
         fontlariYukle();
-        KS.varlik.hepsiniBekle([...KS.depo.varlikKimlikleri(E.belge)]).then(() => tumunuCiz());
+        // Yalnız sayfalardaki görseller beklenir; ürün listesinin resimleri panelde göründükçe yüklenir
+        KS.varlik.hepsiniBekle([...KS.depo.varlikKimlikleri(E.belge, { urunler: false })]).then(() => tumunuCiz());
         tumunuCiz();
         requestAnimationFrame(() => sigdir());
         KS.gecmis.baslat();

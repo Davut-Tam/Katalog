@@ -61,9 +61,11 @@
     }
 
     KS.varlik = {
-        async ekle(blob, { g = 0, y = 0, ad = "", id } = {}) {
+        // kaynak: "abellpro" → AbellPro'dan gelen ürün resmi (Yüklemeler kitaplığında listelenmez)
+        async ekle(blob, { g = 0, y = 0, ad = "", id, kaynak } = {}) {
             id = id || KS.kimlik("v");
             const kayit = { id, blob, g, y, ad, tarih: Date.now(), tur: blob.type };
+            if (kaynak) kayit.kaynak = kaynak;
             bellegeAl(kayit);
             try { await islem("varliklar", "readwrite", (s) => s.put(kayit)); } catch (h) { console.warn(h); }
             KS.olay.yay("varliklar");
@@ -93,12 +95,13 @@
             }
             return dataOnbellek.get(id);
         },
+        // Kullanıcının yüklediği görseller (kitaplık). AbellPro ürün resimleri binlerce olabilir: belleğe alınmaz, listelenmez.
         async liste() {
-            const hepsi = (await islem("varliklar", "readonly", (s) => s.getAll())) || [];
+            const hepsi = ((await islem("varliklar", "readonly", (s) => s.getAll())) || []).filter((k) => k.kaynak !== "abellpro");
             for (const k of hepsi) if (!bellek.has(k.id)) bellegeAl(k);
             const kayitli = new Set(hepsi.map((k) => k.id));
             // Depoya yazılamamış (ör. gizli pencere) ama bellekte olanlar da listelensin
-            const ek = [...bellek.values()].filter((v) => !kayitli.has(v.id));
+            const ek = [...bellek.values()].filter((v) => !kayitli.has(v.id) && v.kaynak !== "abellpro");
             return [...hepsi.map((k) => bellek.get(k.id)), ...ek].filter(Boolean).sort((a, b) => b.tarih - a.tarih);
         },
         async sil(id) {
@@ -139,11 +142,12 @@
         sonId() { try { return localStorage.getItem("ks-son"); } catch (h) { return null; } },
         calisiyor: async () => !!(await db()),
 
-        // Belgede kullanılan tüm varlık kimlikleri
-        varlikKimlikleri(belge) {
+        // Belgede kullanılan varlık kimlikleri. urunler: false → ürün listesindeki resimler hariç (yalnız sayfalar + logo);
+        // açılışta ve yazdırırken binlerce ürün resmini belleğe almamak için.
+        varlikKimlikleri(belge, { urunler = true } = {}) {
             const idler = new Set();
             if (belge.marka && belge.marka.logo) idler.add(belge.marka.logo);
-            for (const u of belge.urunler || []) if (u.gorsel && u.gorsel.varlik) idler.add(u.gorsel.varlik);
+            if (urunler) for (const u of belge.urunler || []) if (u.gorsel && u.gorsel.varlik) idler.add(u.gorsel.varlik);
             for (const s of belge.sayfalar) {
                 if (s.arka && s.arka.resim && s.arka.resim.varlik) idler.add(s.arka.resim.varlik);
                 for (const o of s.ogeler) {

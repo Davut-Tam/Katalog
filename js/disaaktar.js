@@ -71,7 +71,7 @@
         const b = E.belge;
         if (E.duzenlenen) KS.editor.metinBitir();
         const kap = document.getElementById("baski");
-        await KS.varlik.hepsiniBekle([...KS.depo.varlikKimlikleri(b)]);
+        await KS.varlik.hepsiniBekle([...KS.depo.varlikKimlikleri({ sayfalar, marka: b.marka }, { urunler: false })]);
         if (b.sayfalar.some((s) => s.ogeler.some((o) => o.tur === "qr")) && !window.qrcode) await KS.betikYukle(KS.KUTUPHANE.qr).catch(() => {});
         kap.replaceChildren(...sayfalar.map((s) => KS.cizim.sayfaDom(s, b)));
         let st = document.getElementById("baski-sayfa");

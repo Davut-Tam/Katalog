@@ -77,7 +77,11 @@ Stok adları, satış fiyatları, eski fiyatlar, stok türleri, resimler ve firm
    **Kodu e-postayla iste** kodları yazılım sağlayıcısına gönderir, gelen 16 haneli kod girilir. Lisans bu tarayıcıya bağlıdır.
 3. **Kullanıcı:** AbellPro kullanıcı adı (ad soyad, kullanıcı kodu ya da e-posta) ve parola. Kullanıcının Stok menüsünde görme yetkisi olmalı.
 
-Sonra **Stok ekle** ile stoklar aranıp (tür, "fiyatı düşenler", "son 7 / 30 günde fiyatı değişenler", yalnız resimliler) seçilir ve listeye eklenir.
+Sonra **Tüm ürünleri al**: AbellPro'daki bütün aktif stoklar resimleriyle (seçim sorulmadan) listeye gelir; ilerleme gösterilir, **Durdur** o ana kadar gelenleri bırakır.
+Tekrar basıldığında yeni stoklar eklenir, listedekiler güncellenir, AbellPro'da artık olmayanlar işaretlenir; pasif stoklar eklenmez.
+Liste yalnız şablon örnek ürünlerinden oluşuyorsa örnekler kendiliğinden çıkarılır (sayfadaki kartlar yerinde kalır).
+Belirli stokları aramak / seçmek için AbellPro kartının menüsünde **Seçerek ürün ekle…** (tür, "fiyatı düşenler", "son 7 / 30 günde fiyatı değişenler", yalnız resimliler).
+Binlerce ürünle de akıcı kalması için: ürün listesi parça parça çizilir, ürün resimleri yalnız göründükçe yüklenir ve Yüklemeler kitaplığında listelenmez.
 Katalogda ad, fiyat, resim istendiği gibi değiştirilebilir; bunlar AbellPro'ya geri yazılmaz.
 **Güncelle** fiyatları ve bilgileri AbellPro'dan tazeler: katalogda elle değiştirilen alanlar korunur, değiştirilmeyenler güncellenir
 (ürün formunda hangi alanların değiştirildiği görünür, "AbellPro değerlerine dön" ile geri alınır).

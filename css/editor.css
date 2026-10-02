@@ -274,6 +274,7 @@ button { cursor: pointer; }
 .urun-form .form-eylem { grid-column: 1 / -1; display: flex; gap: 6px; justify-content: space-between; margin-top: 2px; }
 .bos-durum { text-align: center; color: var(--yazi-3); padding: 28px 10px; }
 .bos-durum .ikon { margin: 0 auto 10px; color: var(--yazi-3); }
+.liste-devam { margin: 8px 0 4px; }
 .yapiskan-ust { position: sticky; top: 0; z-index: 3; margin: 0 -16px 2px; padding: 8px 16px 2px; background: var(--z1); box-shadow: 0 1px 0 var(--cizgi); }
 .yapiskan-ust .ara-kutu { margin-bottom: 10px; }
 .yapiskan-ust .cipler { margin-bottom: 8px; }

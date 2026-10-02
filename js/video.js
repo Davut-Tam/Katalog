@@ -1644,26 +1644,51 @@
                 ...(urunModu ? [] : [baslik("Sayfalar"), h("div.alan-sira", kapsamCip, aralik)]));
         }
         // Ürün seçici: işaretlenen ürünler listedeki sırayla videoya girer
+        // Binlerce ürün olabilir: ilk 150 eşleşme çizilir, arama daraltır; "Tümü / Hiçbiri" aramaya uyan bütün ürünlere uygulanır.
         function urunSecici() {
-            const liste = urunListesi(), secim = urunSecimi();
+            const liste = urunListesi(), secim = urunSecimi(), GOSTER = 150;
             if (!liste.length) return h("p.ipucu-metin", { style: { margin: "0" } }, "Katalogda ürün yok. Soldaki Ürünler panelinden ürün ekleyin.");
+            let suzulmus = liste;
             const say = h("span.video-urun-say");
-            const sayYaz = () => { say.textContent = `${liste.filter((u) => secim.has(u.id)).length} / ${liste.length} seçili`; };
+            const sayYaz = () => {
+                const n = liste.filter((u) => secim.has(u.id)).length;
+                say.textContent = `${n.toLocaleString("tr-TR")} / ${liste.length.toLocaleString("tr-TR")} seçili`;
+                return n;
+            };
             const bildir = KS.gecikmeli(() => degisti("urunler"), 350);
-            const satirlar = liste.map((u) => {
+            const kucukResim = (u) => {
+                const yedek = h("span", (u.gorsel && u.gorsel.emoji) || "🛒");
+                const id = u.gorsel && u.gorsel.varlik;
+                if (!id) return yedek;
+                const url = KS.varlik.url(id);
+                if (url) return h("img", { src: url, alt: "" });
+                KS.varlik.bekle(id).then((v) => { if (v && yedek.isConnected) yedek.replaceWith(h("img", { src: v.url, alt: "" })); });
+                return yedek;
+            };
+            const satir = (u) => {
                 const kutu = h("input", { type: "checkbox", checked: secim.has(u.id) });
-                const url = u.gorsel && u.gorsel.varlik ? KS.varlik.url(u.gorsel.varlik) : null;
-                const resim = url ? h("img", { src: url, alt: "" }) : h("span", (u.gorsel && u.gorsel.emoji) || "🛒");
                 kutu.addEventListener("change", () => { if (kutu.checked) secim.add(u.id); else secim.delete(u.id); sayYaz(); bildir(); });
-                const satir = h("label.video-urun", kutu, h("span.video-urun-resim", resim), h("span.video-urun-ad", u.ad || "Ürün"), h("b", u.fiyat > 0 ? KS.fiyatMetin(u.fiyat) : ""));
-                satir._u = u; satir._kutu = kutu;
-                return satir;
-            });
-            const kap = h("div.video-urun-liste", satirlar);
+                return h("label.video-urun", kutu, h("span.video-urun-resim", kucukResim(u)), h("span.video-urun-ad", u.ad || "Ürün"), h("b", u.fiyat > 0 ? KS.fiyatMetin(u.fiyat) : ""));
+            };
+            const kap = h("div.video-urun-liste");
+            const listeyiCiz = () => kap.replaceChildren(...suzulmus.slice(0, GOSTER).map(satir),
+                suzulmus.length > GOSTER ? h("p.ipucu-metin", { style: { margin: "8px 10px" } }, `${(suzulmus.length - GOSTER).toLocaleString("tr-TR")} ürün daha var; aramayla daraltın.`) : null,
+                !suzulmus.length ? h("p.ipucu-metin", { style: { margin: "8px 10px" } }, "Aramaya uyan ürün yok.") : null);
             const ara = h("input.girdi", { placeholder: "Ürün ara…", type: "search" });
             ara.addEventListener("keydown", (e) => e.stopPropagation());
-            ara.addEventListener("input", () => { const q = KS.sade(ara.value); for (const s of satirlar) s.hidden = q && !KS.sade(s._u.ad).includes(q); });
-            const hepsi = (v) => () => { for (const s of satirlar) if (!s.hidden) { s._kutu.checked = v; if (v) secim.add(s._u.id); else secim.delete(s._u.id); } sayYaz(); bildir(); };
+            ara.addEventListener("input", KS.gecikmeli(() => {
+                const q = KS.sade(ara.value).trim();
+                suzulmus = q ? liste.filter((u) => KS.sade(`${u.ad} ${u.kategori || ""}`).includes(q)) : liste;
+                listeyiCiz();
+            }, 120));
+            const hepsi = (v) => () => {
+                for (const u of suzulmus) { if (v) secim.add(u.id); else secim.delete(u.id); }
+                listeyiCiz();
+                const n = sayYaz();
+                if (v && n > 40) KS.bildir(`${n.toLocaleString("tr-TR")} ürün seçili: video yaklaşık ${Math.ceil(n / a.urunSay * a.urunSure / 60)} dakika sürer.`, { sure: 5000 });
+                bildir();
+            };
+            listeyiCiz();
             sayYaz();
             return h("div.video-urunler",
                 h("div.video-urun-ust", liste.length > 6 ? ara : null, say,

@@ -217,6 +217,8 @@
     // ── Geri al / yinele ────────────────────────────────────────
     // Her kayıt belgenin JSON dizesidir (görseller dışarıda olduğu için küçüktür).
     const SINIR = 80;
+    // Toplam boyut sınırı (karakter): binlerce ürünlü belgede 80 tam kopya yüzlerce MB eder; eskiler atılır (en az 10 adım kalır)
+    const BOYUT_SINIRI = 40e6;
     let yigin = [], konum = -1, baglam = null, bekleyen = false;
     const gecikmeliIc = KS.gecikmeli(() => kaydet(), 450);
     const kaydetGecikmeli = () => { bekleyen = true; gecikmeliIc(); };
@@ -231,7 +233,9 @@
         if (s === yigin[konum]) return;
         yigin = yigin.slice(0, konum + 1);
         yigin.push(s);
-        if (yigin.length > SINIR) yigin.shift();
+        let toplam = 0;
+        for (const x of yigin) toplam += x.length;
+        while (yigin.length > SINIR || (yigin.length > 10 && toplam > BOYUT_SINIRI)) toplam -= yigin.shift().length;
         konum = yigin.length - 1;
         KS.olay.yay("gecmis");
         KS.olay.yay("degisti");
