@@ -1532,7 +1532,7 @@
         }
         function bilgiYaz() {
             const o = olcuHesapla(a, b);
-            bilgi.replaceChildren(h("span", sureMetni(plan.toplam)), h("span", `${o.W} × ${o.H}`), h("span", `${a.fps} fps · MP4`));
+            bilgi.replaceChildren(h("span", sureMetni(plan.toplam)), h("span", `${o.W} × ${o.H}`), h("span", `${a.fps} fps · ${window.VideoEncoder ? "MP4" : "video"}`));
         }
         // Ayar değişince: kaydet, planı / hazırlığı yenile, değişikliğin görüleceği âna git
         function degisti(alan, { hazirlik = false, oynat: oynasin = true } = {}) {
@@ -1710,7 +1710,9 @@
             disaAktariliyor = true; iptal = false;
             anaDugme.disabled = true;
             ayarlarEl.classList.add("kilitli");
+            iptalDugme.textContent = "İptal";
             iptalDugme.hidden = false;
+            let hataVar = false;
             ortuGoster("Video oluşturuluyor…", "Hazırlanıyor…", 0);
             let yuzde = 0, durumMetni = "";
             const guncelle = () => ortuGoster(`Video oluşturuluyor · %${yuzde}`, durumMetni, yuzde / 100);
@@ -1726,16 +1728,24 @@
             } catch (hata) {
                 console.error(hata);
                 if (acik) ortuGoster("Video oluşturulamadı", hata.message || String(hata));
+                hataVar = true;
             } finally {
                 disaAktariliyor = false;
-                iptalDugme.hidden = true;
+                // Hata mesajı "Tamam" ile kapatılıp önizlemeye dönülür
+                iptalDugme.textContent = "Tamam";
+                iptalDugme.hidden = !hataVar;
                 if (acik) {
                     anaDugme.disabled = false;
                     if (!sonuc) { ayarlarEl.classList.remove("kilitli"); kirli = true; }
                 }
             }
         }
-        iptalDugme.addEventListener("click", () => { iptal = true; ortuGoster("İptal ediliyor…"); });
+        iptalDugme.addEventListener("click", () => {
+            if (disaAktariliyor) { iptal = true; ortuGoster("İptal ediliyor…"); return; }
+            iptalDugme.hidden = true;
+            if (hepsiHazir && !bosPlan) ortu.hidden = true; else hepsiniHazirla();
+            kirli = true;
+        });
 
         const p = KS.ui.pencere({
             baslik: "Video katalog",

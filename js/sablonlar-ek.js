@@ -548,8 +548,8 @@
                     ogeler: [
                         sekil({ ad: "Defter çizgisi", x: 110, y: 0, w: 4, h: 1920, dolgu: "rgba(220,38,38,.35)" }),
                         metin({ x: 150, y: 90, w: 860, metin: "Bugün ne pişirsek?", font: "Courgette", boyut: 62, dolgu: kahve }),
-                        emoji("🍳", 770, 180, 220, { aci: 12 }),
-                        metin({ x: 150, y: 190, w: 620, metin: "Menemen", font: "Lilita One", boyut: 150, dolgu: kirmizi, golgeler: [{ x: 6, y: 6, b: 0, renk: "#fde68a" }] }),
+                        emoji("🍳", 800, 160, 210, { aci: 12 }),
+                        metin({ x: 150, y: 196, w: 720, metin: "Menemen", font: "Lilita One", boyut: 140, dolgu: kirmizi, golgeler: [{ x: 6, y: 6, b: 0, renk: "#fde68a" }] }),
                         metin({ x: 154, y: 396, w: 620, metin: "2 kişilik • 15 dakika • Kolay", font: "Nunito", kalin: 800, boyut: 32, dolgu: "#9a6a4f" }),
                         metin({ x: 150, y: 476, w: 860, metin: "MALZEMELER", font: "Nunito", kalin: 900, boyut: 30, harf: 300, dolgu: kahve }),
                         ...izgara(urunler, { x: 150, y: 536, w: 860, h: 920 }, 1, 4, 20, stil),

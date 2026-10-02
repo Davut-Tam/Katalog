@@ -258,6 +258,12 @@ function IISAyarla {
             Appcmd @("set", "app", "/app.name:$Site/", "/applicationPool:$Havuz") | Out-Null
             Yaz "Site güncellendi: $Site" "tamam"
         } else {
+            # Bağlantı noktası başka bir site ya da program tarafından kullanılıyorsa site açılmaz: baştan söyle
+            $ErrorActionPreference = "Continue"
+            $iisde = ((& $appcmd list site /text:bindings) -join ",") -match (":" + $Port + ":")
+            $dinleyen = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
+            $ErrorActionPreference = "Stop"
+            if ($iisde -or $dinleyen) { throw "Bağlantı noktası $Port kullanımda. yayinla.bat içindeki komuta -Port 9090 gibi boş bir numara ekleyin." }
             $baglama = "http/*:${Port}:$HostAdi"
             Appcmd @("add", "site", "/name:$Site", "/physicalPath:$Hedef", "/bindings:$baglama") | Out-Null
             Appcmd @("set", "app", "/app.name:$Site/", "/applicationPool:$Havuz") | Out-Null
@@ -270,6 +276,9 @@ function IISAyarla {
     $ErrorActionPreference = "Continue"
     & icacls.exe $Hedef /grant "IIS_IUSRS:(OI)(CI)RX" /T /Q 2>&1 | Out-Null
     $ErrorActionPreference = "Stop"
+    # IIS hizmeti durdurulmuşsa başlat
+    $w3 = Get-Service W3SVC -ErrorAction SilentlyContinue
+    if ($w3 -and $w3.Status -ne "Running") { Start-Service W3SVC; Yaz "IIS hizmeti (W3SVC) başlatıldı" "tamam" }
     Appcmd @("start", "apppool", "/apppool.name:$Havuz") -Sessiz | Out-Null
     Appcmd @("start", "site", "/site.name:$Site") -Sessiz | Out-Null
 }
@@ -296,22 +305,25 @@ function GuvenlikDuvariniAc {
     }
 }
 
+# Adres IIS'teki gerçek bağlamadan okunur (site önceden farklı bir bağlantı noktasıyla kurulmuş olabilir)
 function YayinAdresi {
     if ($YalnizDosyalar) { return $null }
-    if ($Uygulama) {
-        $b = ((& $appcmd list site "/name:$Site" /text:bindings) -join ",").Split(",") | Where-Object { $_ -like "http/*" } | Select-Object -First 1
-        if (-not $b) { $b = "http/*:80:" }
-        $p = $b.Substring(5).Split(":")
-        $ana = if ($p[2]) { $p[2] } else { "localhost" }
-        $port = if ($p[1] -and $p[1] -ne "80") { ":" + $p[1] } else { "" }
-        return "http://$ana$port/" + $Uygulama.Trim("/") + "/"
-    }
-    $ana = if ($HostAdi) { $HostAdi } else { "localhost" }
-    $port = if ($Port -ne 80) { ":$Port" } else { "" }
-    return "http://$ana$port/"
+    $ErrorActionPreference = "Continue"
+    $b = ((& $appcmd list site "/name:$Site" /text:bindings) -join ",").Split(",") | Where-Object { $_ -like "http/*" } | Select-Object -First 1
+    if (-not $b) { $b = "http/*:${Port}:$HostAdi" }
+    $p = $b.Substring(5).Split(":")
+    $ana = if ($p.Count -gt 2 -and $p[2]) { $p[2] } else { "localhost" }
+    $port = if ($p[1] -and $p[1] -ne "80") { ":" + $p[1] } else { "" }
+    $yol = if ($Uygulama) { $Uygulama.Trim("/") + "/" } else { "" }
+    return "http://$ana$port/$yol"
 }
 
 function SaglikDenetimi([string]$adres, [string]$imza) {
+    # Yeni kurulan site ilk istekte birkaç saniye gecikebilir
+    for ($i = 1; $i -le 3; $i++) {
+        try { Invoke-WebRequest -Uri $adres -UseBasicParsing -TimeoutSec 15 | Out-Null; break }
+        catch { if ($i -lt 3) { Start-Sleep -Seconds 2 } }
+    }
     try {
         $sayfa = Invoke-WebRequest -Uri $adres -UseBasicParsing -TimeoutSec 15
         if ($sayfa.StatusCode -ne 200 -or $sayfa.Content -notmatch "Katalog") { throw "Beklenmeyen yanıt ($($sayfa.StatusCode))" }

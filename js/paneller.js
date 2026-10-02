@@ -269,8 +269,8 @@
         return h("div",
             abellproKarti(),
             h("div.urun-arac", ekle, iceAktar),
-            h("div.ara-kutu", KS.ikon("ara", 16), ara),
-            kategoriler.length > 2 ? cipler : null,
+            // Arama ve kategoriler liste kaydırılırken üstte sabit kalır
+            h("div.yapiskan-ust", h("div.ara-kutu", KS.ikon("ara", 16), ara), kategoriler.length > 2 ? cipler : null),
             h("p.ipucu-metin", { style: { margin: "0 0 8px" } }, `${urunler.length} ürün · Sayfaya sürükleyin ya da + ile ekleyin. Bir kartın üzerine bırakırsanız o kartın ürünü değişir.`),
             liste,
             h("div.yapiskan-alt", yerlestir));

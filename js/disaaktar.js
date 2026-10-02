@@ -198,6 +198,13 @@ addEventListener("resize",()=>ciz());ciz();
             if (ayar.bicim === "web") parcalar.push(h("div.bilgi-kutu", KS.ikon("bilgi", 17), h("div", "İnternet bağlantısı gerektirmeyen tek bir .html dosyası iner. Telefonda açıldığında sayfalar kaydırılarak çevrilir.")));
             ayarlar.replaceChildren(...parcalar);
             if (paylasDugme) paylasDugme.hidden = !(navigator.canShare && ["png", "jpg", "pdf"].includes(ayar.bicim));
+            anaDugmeyiYaz();
+        }
+        // Ana düğme ne yapacaksa onu söylesin
+        function anaDugmeyiYaz() {
+            if (!indirDugme) return;
+            const [ikon, yazi] = ayar.bicim === "video" ? ["video", "Video stüdyosunu aç"] : ayar.bicim === "pdf-baski" ? ["yazdir", "Yazdır…"] : ["indir", "İndir"];
+            indirDugme.replaceChildren(KS.ikon(ikon, 17), yazi);
         }
         ciz();
         const p = KS.ui.pencere({
@@ -206,7 +213,7 @@ addEventListener("resize",()=>ciz());ciz();
             dugmeler: [
                 { etiket: "Paylaş", ikon: "paylas", sol: true, ref: (el) => { paylasDugme = el; el.hidden = !(navigator.canShare && ["png", "jpg", "pdf"].includes(ayar.bicim)); }, fn: () => calistir(true) },
                 { etiket: "Vazgeç" },
-                { etiket: "İndir", birincil: true, ikon: "indir", ref: (el) => { indirDugme = el; }, fn: () => calistir(false) }
+                { etiket: "İndir", birincil: true, ikon: "indir", ref: (el) => { indirDugme = el; anaDugmeyiYaz(); }, fn: () => calistir(false) }
             ]
         });
         async function calistir(paylas) {

@@ -274,6 +274,9 @@ button { cursor: pointer; }
 .urun-form .form-eylem { grid-column: 1 / -1; display: flex; gap: 6px; justify-content: space-between; margin-top: 2px; }
 .bos-durum { text-align: center; color: var(--yazi-3); padding: 28px 10px; }
 .bos-durum .ikon { margin: 0 auto 10px; color: var(--yazi-3); }
+.yapiskan-ust { position: sticky; top: 0; z-index: 3; margin: 0 -16px 2px; padding: 8px 16px 2px; background: var(--z1); box-shadow: 0 1px 0 var(--cizgi); }
+.yapiskan-ust .ara-kutu { margin-bottom: 10px; }
+.yapiskan-ust .cipler { margin-bottom: 8px; }
 .yapiskan-alt { position: sticky; bottom: -24px; margin: 12px -16px -24px; padding: 12px 16px 16px; background: linear-gradient(transparent, var(--z1) 30%); }
 
 /* Form öğeleri */
@@ -775,6 +778,7 @@ input[type="range"] { min-width: 0; }
     .sol-panel.kapali { width: auto; opacity: 1; border: 0; overflow: visible; transform: translateY(calc(100% + var(--nav) + 24px)); pointer-events: none; box-shadow: none; }
     .panel-kapat { display: none; }
     .panel-ic { padding: 0 14px 18px; }
+    .yapiskan-ust { margin-left: -14px; margin-right: -14px; padding-left: 14px; padding-right: 14px; }
     .yapiskan-alt { bottom: -18px; margin-bottom: -18px; }
     .sag-panel {
         position: fixed; left: 0; right: 0; top: auto; bottom: 0; width: auto; height: min(60dvh, 600px);
